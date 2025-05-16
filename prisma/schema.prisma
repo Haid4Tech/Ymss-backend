@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role
+  student   Student?
+  parent    Parent?
+  teacher   Teacher?
+  events Event[]
+  announcements Announcement[]
+  createdAt DateTime @default(now())
+
+}
+
+model Student {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int      @unique
+  class     Class   @relation(fields: [classId], references: [id])
+  classId   Int
+  parent    Parent?  @relation(fields: [parentId], references: [id])
+  parentId  Int?
+  records   AcademicRecord[]
+  attendance Attendance[]
+  grades    Grade[]
+  
+
+}
+
+model Parent {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int      @unique
+  students  Student[]
+}
+
+model Teacher {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int      @unique
+  subjects   Subject[]
+}
+
+model Class {
+  id        Int      @id @default(autoincrement())
+  name      String
+  students  Student[]
+  subjects  Subject[]
+  exams    Exam[]
+}
+
+model Subject {
+  id        Int      @id @default(autoincrement())
+  name      String
+  class     Class?   @relation(fields: [classId], references: [id])
+  classId   Int?
+  teacher   Teacher? @relation(fields: [teacherId], references: [id])
+  teacherId Int?
+  exams     Exam[]
+}
+
+model Exam {
+  id        Int      @id @default(autoincrement())
+  title     String
+  date      DateTime
+  class     Class    @relation(fields: [classId], references: [id])
+  classId   Int
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  subjectId Int
+  grades    Grade[] 
+  createdAt DateTime @default(now())
+}
+
+model Event {
+  id        Int      @id @default(autoincrement())
+  title     String
+  description String
+  date      DateTime
+  createdAt DateTime @default(now())
+  createdBy User     @relation(fields: [createdById], references: [id])
+  createdById Int
+}
+
+model Attendance {
+  id        Int      @id @default(autoincrement())
+  student   Student  @relation(fields: [studentId], references: [id])
+  studentId Int
+  date      DateTime
+  present   Boolean
+}
+
+model Grade {
+  id        Int      @id @default(autoincrement())
+  student   Student  @relation(fields: [studentId], references: [id])
+  studentId Int
+  exam   Exam  @relation(fields: [examId], references: [id])
+  examId Int
+  value     Float
+  date      DateTime
+}
+
+model AcademicRecord {
+  id        Int      @id @default(autoincrement())
+  student   Student  @relation(fields: [studentId], references: [id])
+  studentId Int
+  year      Int
+  term      Term
+  summary   String
+}
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  Int
+}
+
+enum Role {
+  STUDENT
+  PARENT
+  TEACHER
+  ADMIN
+}
+
+enum Term {
+  FIRST
+  SECOND
+  THIRD
+}
