@@ -1,13 +1,15 @@
 import { Request, Response } from "express";
 import { prisma } from "../app";
 import { exclude } from "../utils/helpers";
+import { User, Student, Parent } from "../common/types";
 
 export const getAllParents = async (req: Request, res: Response) => {
   const parents = await prisma.parent.findMany({
     include: { user: true, students: true },
   });
-  parents.forEach((parent) => {
-    parent.user.password = "";
+
+  (parents as Parent[]).forEach((parent: Parent) => {
+    (parent.user as User).password = "";
   });
   res.json(parents);
 };
