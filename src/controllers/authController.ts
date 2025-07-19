@@ -49,8 +49,14 @@ export const login = async (req: Request, res: Response) => {
     expiresIn: "1w",
   });
 
+  let userRole;
+
+  if (user.role == "TEACHER") {
+    userRole = await prisma.teacher.findUnique({ where: { userId: user.id } });
+  }
+
   const { password, ...userWithoutPassword } = user;
-  res.json({ user: userWithoutPassword, token });
+  res.json({ user: userWithoutPassword, role: userRole, token });
 };
 
 export const me = async (req: Request, res: Response) => {
