@@ -52,14 +52,16 @@ export const login = async (req: Request, res: Response) => {
   let teacherRecord = null;
 
   if (user.role === "TEACHER") {
-    teacherRecord = await prisma.teacher.findUnique({ where: { userId: user.id } });
+    teacherRecord = await prisma.teacher.findUnique({
+      where: { userId: user.id },
+    });
   }
 
   const { password, ...userWithoutPassword } = user;
-  res.json({ 
-    user: userWithoutPassword, 
-    teacher: teacherRecord, 
-    token 
+  res.json({
+    user: userWithoutPassword,
+    teacher: teacherRecord,
+    token,
   });
 };
 
