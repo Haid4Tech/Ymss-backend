@@ -25,8 +25,8 @@ export const createEvent = async (req: Request, res: Response) => {
       date: new Date(date),
       category,
       color,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate,
+      endDate,
       createdBy: { connect: { id: createdById } },
     },
   });
