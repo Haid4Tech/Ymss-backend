@@ -15,7 +15,8 @@ export const getEventById = async (req: Request, res: Response) => {
 };
 
 export const createEvent = async (req: Request, res: Response) => {
-  const { title, description, date, category, color } = req.body;
+  const { title, description, date, category, color, startDate, endDate } =
+    req.body;
   const createdById = (req as any).userId;
   const event = await prisma.event.create({
     data: {
@@ -24,6 +25,8 @@ export const createEvent = async (req: Request, res: Response) => {
       date: new Date(date),
       category,
       color,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
       createdBy: { connect: { id: createdById } },
     },
   });
