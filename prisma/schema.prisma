@@ -59,9 +59,7 @@ model Class {
 model Subject {
   id        Int      @id @default(autoincrement())
   name      String
-  class     Class?   @relation(fields: [classId], references: [id])
   classId   Int?
-  teacher   Teacher? @relation(fields: [teacherId], references: [id])
   teacherId Int?
   exams     Exam[]
   class     Class?   @relation(fields: [classId], references: [id])
