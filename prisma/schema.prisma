@@ -8,30 +8,42 @@ datasource db {
 }
 
 model User {
-  id            Int            @id @default(autoincrement())
-  email         String         @unique
-  password      String
-  name          String
-  role          Role
-  createdAt     DateTime       @default(now())
-  announcements Announcement[]
-  events        Event[]
-  parent        Parent?
-  student       Student?
-  teacher       Teacher?
+  id                Int                @id @default(autoincrement())
+  email             String             @unique
+  password          String
+  name              String
+  role              Role
+  photo             String?
+  createdAt         DateTime           @default(now())
+  DOB               DateTime
+  gender            Gender
+  nationality       String?
+  country           String?
+  religion          String?
+  bloodGroup        String?
+  address           String
+  medicalInfo       MedicalInfo?
+  announcements     Announcement[]
+  events            Event[]
+  parent            Parent?
+  student           Student?
+  teacher           Teacher?
+  EmergencyContacts EmergencyContacts?
 }
 
 model Student {
-  id         Int              @id @default(autoincrement())
-  userId     Int              @unique
-  classId    Int
-  parentId   Int?
-  records    AcademicRecord[]
-  attendance Attendance[]
-  grades     Grade[]
-  class      Class            @relation(fields: [classId], references: [id])
-  parent     Parent?          @relation(fields: [parentId], references: [id])
-  user       User             @relation(fields: [userId], references: [id])
+  id             Int              @id @default(autoincrement())
+  userId         Int              @unique
+  classId        Int
+  parentId       Int?
+  admissionDate  DateTime
+  previousSchool String?
+  records        AcademicRecord[]
+  attendance     Attendance[]
+  grades         Grade[]
+  class          Class            @relation(fields: [classId], references: [id])
+  parent         Parent?          @relation(fields: [parentId], references: [id])
+  user           User             @relation(fields: [userId], references: [id])
 }
 
 model Parent {
@@ -57,13 +69,14 @@ model Class {
 }
 
 model Subject {
-  id        Int      @id @default(autoincrement())
-  name      String
-  classId   Int?
-  teacherId Int?
-  exams     Exam[]
-  class     Class?   @relation(fields: [classId], references: [id])
-  teacher   Teacher? @relation(fields: [teacherId], references: [id])
+  id             Int      @id @default(autoincrement())
+  name           String
+  classId        Int?
+  teacherId      Int?
+  previousSchool String?
+  exams          Exam[]
+  class          Class?   @relation(fields: [classId], references: [id])
+  teacher        Teacher? @relation(fields: [teacherId], references: [id])
 }
 
 model Exam {
@@ -84,9 +97,9 @@ model Event {
   description String
   date        DateTime
   startTime   String
-  endTime  String
-  category   String
-  color    String
+  endTime     String
+  category    String
+  color       String
   createdAt   DateTime @default(now())
   createdById Int
   createdBy   User     @relation(fields: [createdById], references: [id])
@@ -128,6 +141,27 @@ model Announcement {
   author    User     @relation(fields: [authorId], references: [id])
 }
 
+model MedicalInfo {
+  id     Int  @id @default(autoincrement())
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id])
+
+  conditions  String?
+  allergies   String?
+  medications String?
+  doctorName  String?
+  doctorPhone String?
+}
+
+model EmergencyContacts {
+  id       Int    @id @default(autoincrement())
+  userId   Int    @unique
+  user     User   @relation(fields: [userId], references: [id])
+  name     String
+  phone    String
+  relation String
+}
+
 enum Role {
   STUDENT
   PARENT
@@ -139,4 +173,10 @@ enum Term {
   FIRST
   SECOND
   THIRD
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
 }
