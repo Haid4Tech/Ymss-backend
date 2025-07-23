@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
 
 import authRoutes from "./routes/auth";
-// import userRoutes from "./routes/users";
+import userRoutes from "./routes/users";
 import studentRoutes from "./routes/students";
 import parentRoutes from "./routes/parents";
 import teacherRoutes from "./routes/teachers";
@@ -26,7 +26,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/auth", authRoutes);
-// app.use("/users", userRoutes);
+app.use("/users", userRoutes);
 app.use("/students", studentRoutes);
 app.use("/parents", parentRoutes);
 app.use("/teachers", teacherRoutes);

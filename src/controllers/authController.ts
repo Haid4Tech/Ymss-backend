@@ -74,5 +74,52 @@ export const me = async (req: Request, res: Response) => {
     email: user.email,
     name: user.name,
     role: user.role,
+    createdAt: user.createdAt,
   });
+};
+
+export const updateProfile = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { name, email } = req.body;
+
+    // Check if email is already taken by another user
+    if (email) {
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          email,
+          NOT: { id: userId },
+        },
+      });
+
+      if (existingUser) {
+        return res.status(400).json({ error: "Email already exists" });
+      }
+    }
+
+    // Prepare update data
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+
+    res.json({
+      message: "Profile updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Update profile error:", error);
+    res.status(500).json({ error: "Failed to update profile" });
+  }
 };
