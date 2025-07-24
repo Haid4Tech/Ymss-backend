@@ -114,7 +114,7 @@ export const me = async (req: Request, res: Response) => {
     where: { id: userId },
     include: {
       medicalInfo: true,
-      emergencyContacts: true,
+      emergencyInfo: true,
     },
   });
   if (!user) return res.status(404).json({ error: "User not found" });
@@ -171,7 +171,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       data: updateData,
       include: {
         medicalInfo: true,
-        emergencyContacts: true,
+        emergencyInfo: true,
       },
     });
 

@@ -28,7 +28,7 @@ model User {
   parent            Parent?
   student           Student?
   teacher           Teacher?
-  emergencyContacts EmergencyContacts?
+  emergencyInfo EmergencyContacts?
 }
 
 model Student {

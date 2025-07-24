@@ -8,16 +8,16 @@ export const getAllUsers = async (req: Request, res: Response) => {
     const users = await prisma.user.findMany({
       include: {
         medicalInfo: true,
-        EmergencyContacts: true,
+        emergencyInfo: true,
       },
     });
-    
+
     // Exclude passwords from all users
-    const usersWithoutPasswords = users.map(user => {
+    const usersWithoutPasswords = users.map((user) => {
       const { password: _, ...userWithoutPassword } = user;
       return userWithoutPassword;
     });
-    
+
     res.json(usersWithoutPasswords);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch users" });
@@ -42,7 +42,7 @@ export const getUserById = async (req: Request, res: Response) => {
       where: { id: parseInt(id) },
       include: {
         medicalInfo: true,
-        EmergencyContacts: true,
+        emergencyInfo: true,
       },
     });
 
@@ -63,19 +63,19 @@ export const getUserById = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { 
-      name, 
-      email, 
-      role, 
-      password, 
-      DOB, 
-      gender, 
-      address, 
-      photo, 
-      nationality, 
-      country, 
-      religion, 
-      bloodGroup 
+    const {
+      name,
+      email,
+      role,
+      password,
+      DOB,
+      gender,
+      address,
+      photo,
+      nationality,
+      country,
+      religion,
+      bloodGroup,
     } = req.body;
 
     // Check if email is already taken by another user
@@ -114,14 +114,17 @@ export const updateUser = async (req: Request, res: Response) => {
       data: updateData,
       include: {
         medicalInfo: true,
-        EmergencyContacts: true,
+        emergencyInfo: true,
       },
     });
 
     // Exclude password from response
     const { password: ___, ...userWithoutPassword } = updatedUser;
 
-    res.json({ message: "User updated successfully", user: userWithoutPassword });
+    res.json({
+      message: "User updated successfully",
+      user: userWithoutPassword,
+    });
   } catch (error) {
     console.error("Update user error:", error);
     res.status(500).json({ error: "Failed to update user" });
@@ -166,23 +169,28 @@ export const deleteUser = async (req: Request, res: Response) => {
 // Create user (Admin only - alternative to registration)
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const { 
-      email, 
-      password, 
-      name, 
-      role, 
-      DOB, 
-      gender, 
-      address, 
-      photo, 
-      nationality, 
-      country, 
-      religion, 
-      bloodGroup 
+    const {
+      email,
+      password,
+      name,
+      role,
+      DOB,
+      gender,
+      address,
+      photo,
+      nationality,
+      country,
+      religion,
+      bloodGroup,
     } = req.body;
 
     if (!email || !password || !name || !role || !DOB || !gender || !address) {
-      return res.status(400).json({ error: "Email, password, name, role, DOB, gender, and address are required fields" });
+      return res
+        .status(400)
+        .json({
+          error:
+            "Email, password, name, role, DOB, gender, and address are required fields",
+        });
     }
 
     if (
@@ -222,14 +230,19 @@ export const createUser = async (req: Request, res: Response) => {
       },
       include: {
         medicalInfo: true,
-        EmergencyContacts: true,
+        emergencyInfo: true,
       },
     });
 
     // Exclude password from response
     const { password: ____, ...userWithoutPassword } = user;
 
-    res.status(201).json({ message: "User created successfully", user: userWithoutPassword });
+    res
+      .status(201)
+      .json({
+        message: "User created successfully",
+        user: userWithoutPassword,
+      });
   } catch (error) {
     console.error("Create user error:", error);
     res.status(500).json({ error: "Failed to create user" });
