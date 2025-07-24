@@ -22,6 +22,11 @@ export const register = async (req: Request, res: Response) => {
     bloodGroup,
   } = req.body;
 
+  // Validate required fields
+  if (!email || !password || !name || !role) {
+    return res.status(400).json({ error: "Email, password, name, and role are required" });
+  }
+
   if (
     role !== "STUDENT" &&
     role !== "TEACHER" &&
@@ -39,29 +44,28 @@ export const register = async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Email already exists" });
   }
 
-  // if (!DOB || !gender || !address) {
-  //   return res
-  //     .status(400)
-  //     .json({ error: "DOB, gender, and address are required fields" });
-  // }
-
   const hashed = await bcrypt.hash(password, 10);
   try {
+    // Prepare data object with only provided values
+    const userData: any = {
+      email,
+      password: hashed,
+      name,
+      role,
+    };
+
+    // Add optional fields only if they are provided
+    if (DOB) userData.DOB = new Date(DOB);
+    if (gender) userData.gender = gender;
+    if (address) userData.address = address;
+    if (photo) userData.photo = photo;
+    if (nationality) userData.nationality = nationality;
+    if (country) userData.country = country;
+    if (religion) userData.religion = religion;
+    if (bloodGroup) userData.bloodGroup = bloodGroup;
+
     const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashed,
-        name,
-        role,
-        DOB: new Date(DOB),
-        gender,
-        address,
-        photo,
-        nationality,
-        country,
-        religion,
-        bloodGroup,
-      },
+      data: userData,
     });
 
     const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, {
