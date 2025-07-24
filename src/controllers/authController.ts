@@ -99,8 +99,11 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Email already exists" });
     }
 
-    console.error(e);
-    return res.status(500).json({ error: "Internal server error" });
+    console.error("Registration error:", e);
+    return res.status(500).json({ 
+      error: "Internal server error",
+      details: process.env.NODE_ENV === 'development' ? (e as Error)?.message : undefined
+    });
   }
 };
 
