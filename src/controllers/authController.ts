@@ -30,11 +30,11 @@ export const register = async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Invalid role" });
   }
 
-  if (!DOB || !gender || !address) {
-    return res
-      .status(400)
-      .json({ error: "DOB, gender, and address are required fields" });
-  }
+  // if (!DOB || !gender || !address) {
+  //   return res
+  //     .status(400)
+  //     .json({ error: "DOB, gender, and address are required fields" });
+  // }
 
   const hashed = await bcrypt.hash(password, 10);
   try {
