@@ -47,18 +47,36 @@ export const getStudentById = async (req: Request, res: Response) => {
 };
 
 export const createStudent = async (req: Request, res: Response) => {
-  const { userId, classId, parentId } = req.body;
+  const { userId, classId, parentId, admissionDate, previousSchool } = req.body;
+  
+  if (!admissionDate) {
+    return res.status(400).json({ error: "Admission date is required" });
+  }
+
   const student = await prisma.student.create({
-    data: { userId, classId, parentId },
+    data: { 
+      userId, 
+      classId, 
+      parentId, 
+      admissionDate: new Date(admissionDate),
+      previousSchool 
+    },
   });
   res.status(201).json(student);
 };
 
 export const updateStudent = async (req: Request, res: Response) => {
-  const { classId, parentId } = req.body;
+  const { classId, parentId, admissionDate, previousSchool } = req.body;
+  
+  const updateData: any = {};
+  if (classId) updateData.classId = classId;
+  if (parentId) updateData.parentId = parentId;
+  if (admissionDate) updateData.admissionDate = new Date(admissionDate);
+  if (previousSchool !== undefined) updateData.previousSchool = previousSchool;
+
   const student = await prisma.student.update({
     where: { id: Number(req.params.id) },
-    data: { classId, parentId },
+    data: updateData,
   });
   res.json(student);
 };

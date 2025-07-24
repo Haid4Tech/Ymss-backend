@@ -18,16 +18,24 @@ export const getSubjectById = async (req: Request, res: Response) => {
 };
 
 export const createSubject = async (req: Request, res: Response) => {
-  const { name, classId } = req.body;
-  const subject = await prisma.subject.create({ data: { name, classId } });
+  const { name, classId, previousSchool } = req.body;
+  const subject = await prisma.subject.create({ 
+    data: { name, classId, previousSchool } 
+  });
   res.status(201).json(subject);
 };
 
 export const updateSubject = async (req: Request, res: Response) => {
-  const { name, classId } = req.body;
+  const { name, classId, previousSchool } = req.body;
+  
+  const updateData: any = {};
+  if (name) updateData.name = name;
+  if (classId) updateData.classId = classId;
+  if (previousSchool !== undefined) updateData.previousSchool = previousSchool;
+
   const subject = await prisma.subject.update({
     where: { id: Number(req.params.id) },
-    data: { name, classId },
+    data: updateData,
   });
   res.json(subject);
 };
