@@ -24,7 +24,9 @@ export const register = async (req: Request, res: Response) => {
 
   // Validate required fields
   if (!email || !password || !name || !role) {
-    return res.status(400).json({ error: "Email, password, name, and role are required" });
+    return res
+      .status(400)
+      .json({ error: "Email, password, name, and role are required" });
   }
 
   if (
