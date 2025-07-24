@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { prisma } from "../app";
+import { Prisma } from "@prisma/client";
 
 const JWT_SECRET = process.env.JWT_SECRET || "secret";
 
@@ -28,6 +29,14 @@ export const register = async (req: Request, res: Response) => {
     role !== "ADMIN"
   ) {
     return res.status(400).json({ error: "Invalid role" });
+  }
+
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (existingUser) {
+    return res.status(400).json({ error: "Email already exists" });
   }
 
   // if (!DOB || !gender || !address) {
@@ -77,7 +86,15 @@ export const register = async (req: Request, res: Response) => {
       token: token,
     });
   } catch (e) {
-    res.status(400).json({ error: "Email already exists" });
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2002"
+    ) {
+      return res.status(400).json({ error: "Email already exists" });
+    }
+
+    console.error(e);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
