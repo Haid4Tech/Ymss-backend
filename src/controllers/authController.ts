@@ -6,21 +6,21 @@ import { prisma } from "../app";
 const JWT_SECRET = process.env.JWT_SECRET || "secret";
 
 export const register = async (req: Request, res: Response) => {
-  const { 
-    email, 
-    password, 
-    name, 
-    role, 
-    DOB, 
-    gender, 
-    address, 
-    photo, 
-    nationality, 
-    country, 
-    religion, 
-    bloodGroup 
+  const {
+    email,
+    password,
+    name,
+    role,
+    DOB,
+    gender,
+    address,
+    photo,
+    nationality,
+    country,
+    religion,
+    bloodGroup,
   } = req.body;
-  
+
   if (
     role !== "STUDENT" &&
     role !== "TEACHER" &&
@@ -31,16 +31,18 @@ export const register = async (req: Request, res: Response) => {
   }
 
   if (!DOB || !gender || !address) {
-    return res.status(400).json({ error: "DOB, gender, and address are required fields" });
+    return res
+      .status(400)
+      .json({ error: "DOB, gender, and address are required fields" });
   }
 
   const hashed = await bcrypt.hash(password, 10);
   try {
     const user = await prisma.user.create({
-      data: { 
-        email, 
-        password: hashed, 
-        name, 
+      data: {
+        email,
+        password: hashed,
+        name,
         role,
         DOB: new Date(DOB),
         gender,
@@ -49,7 +51,7 @@ export const register = async (req: Request, res: Response) => {
         nationality,
         country,
         religion,
-        bloodGroup
+        bloodGroup,
       },
     });
 
@@ -108,15 +110,15 @@ export const login = async (req: Request, res: Response) => {
 
 export const me = async (req: Request, res: Response) => {
   const userId = (req as any).userId;
-  const user = await prisma.user.findUnique({ 
+  const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
       medicalInfo: true,
       EmergencyContacts: true,
-    }
+    },
   });
   if (!user) return res.status(404).json({ error: "User not found" });
-  
+
   const { password, ...userWithoutPassword } = user;
   res.json(userWithoutPassword);
 };
@@ -124,17 +126,17 @@ export const me = async (req: Request, res: Response) => {
 export const updateProfile = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { 
-      name, 
-      email, 
-      DOB, 
-      gender, 
-      address, 
-      photo, 
-      nationality, 
-      country, 
-      religion, 
-      bloodGroup 
+    const {
+      name,
+      email,
+      DOB,
+      gender,
+      address,
+      photo,
+      nationality,
+      country,
+      religion,
+      bloodGroup,
     } = req.body;
 
     // Check if email is already taken by another user

@@ -21,7 +21,7 @@ model User {
   country           String?
   religion          String?
   bloodGroup        String?
-  address           String
+  address           String?
   medicalInfo       MedicalInfo?
   announcements     Announcement[]
   events            Event[]
