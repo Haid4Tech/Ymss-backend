@@ -47,38 +47,168 @@ export const getStudentById = async (req: Request, res: Response) => {
 };
 
 export const createStudent = async (req: Request, res: Response) => {
-  const { userId, classId, parentId, admissionDate, previousSchool } = req.body;
-  
-  if (!admissionDate) {
-    return res.status(400).json({ error: "Admission date is required" });
-  }
+  try {
+    const { userId, classId, parentId, admissionDate, previousSchool } = req.body;
+    
+    // Validate required fields
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+    
+    if (!classId) {
+      return res.status(400).json({ error: "Class ID is required" });
+    }
+    
+    if (!admissionDate) {
+      return res.status(400).json({ error: "Admission date is required" });
+    }
 
-  const student = await prisma.student.create({
-    data: { 
-      userId, 
-      classId, 
-      parentId, 
-      admissionDate: new Date(admissionDate),
-      previousSchool 
-    },
-  });
-  res.status(201).json(student);
+    // Verify that the user exists and doesn't already have a student record
+    const existingUser = await prisma.user.findUnique({
+      where: { id: parseInt(userId) },
+      include: { student: true }
+    });
+
+    if (!existingUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (existingUser.student) {
+      return res.status(400).json({ error: "User already has a student record" });
+    }
+
+    // Verify that the class exists
+    const existingClass = await prisma.class.findUnique({
+      where: { id: parseInt(classId) }
+    });
+
+    if (!existingClass) {
+      return res.status(404).json({ error: "Class not found" });
+    }
+
+    // Verify parent exists if parentId is provided
+    if (parentId) {
+      const existingParent = await prisma.parent.findUnique({
+        where: { id: parseInt(parentId) }
+      });
+
+      if (!existingParent) {
+        return res.status(404).json({ error: "Parent not found" });
+      }
+    }
+
+    const student = await prisma.student.create({
+      data: { 
+        userId: parseInt(userId), 
+        classId: parseInt(classId), 
+        parentId: parentId ? parseInt(parentId) : null, 
+        admissionDate: new Date(admissionDate),
+        previousSchool 
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            DOB: true,
+            gender: true,
+            address: true,
+            photo: true,
+            nationality: true,
+            country: true,
+            religion: true,
+            bloodGroup: true,
+            createdAt: true,
+          }
+        },
+        class: true,
+        parent: true,
+      }
+    });
+    
+    res.status(201).json({ message: "Student created successfully", student });
+  } catch (error) {
+    console.error("Create student error:", error);
+    res.status(500).json({ error: "Failed to create student" });
+  }
 };
 
 export const updateStudent = async (req: Request, res: Response) => {
-  const { classId, parentId, admissionDate, previousSchool } = req.body;
-  
-  const updateData: any = {};
-  if (classId) updateData.classId = classId;
-  if (parentId) updateData.parentId = parentId;
-  if (admissionDate) updateData.admissionDate = new Date(admissionDate);
-  if (previousSchool !== undefined) updateData.previousSchool = previousSchool;
+  try {
+    const { classId, parentId, admissionDate, previousSchool } = req.body;
+    const studentId = parseInt(req.params.id);
 
-  const student = await prisma.student.update({
-    where: { id: Number(req.params.id) },
-    data: updateData,
-  });
-  res.json(student);
+    // Verify student exists
+    const existingStudent = await prisma.student.findUnique({
+      where: { id: studentId }
+    });
+
+    if (!existingStudent) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    const updateData: any = {};
+    
+    // Validate and set classId
+    if (classId) {
+      const existingClass = await prisma.class.findUnique({
+        where: { id: parseInt(classId) }
+      });
+      if (!existingClass) {
+        return res.status(404).json({ error: "Class not found" });
+      }
+      updateData.classId = parseInt(classId);
+    }
+    
+    // Validate and set parentId
+    if (parentId) {
+      const existingParent = await prisma.parent.findUnique({
+        where: { id: parseInt(parentId) }
+      });
+      if (!existingParent) {
+        return res.status(404).json({ error: "Parent not found" });
+      }
+      updateData.parentId = parseInt(parentId);
+    } else if (parentId === null) {
+      updateData.parentId = null;
+    }
+    
+    if (admissionDate) updateData.admissionDate = new Date(admissionDate);
+    if (previousSchool !== undefined) updateData.previousSchool = previousSchool;
+
+    const student = await prisma.student.update({
+      where: { id: studentId },
+      data: updateData,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            DOB: true,
+            gender: true,
+            address: true,
+            photo: true,
+            nationality: true,
+            country: true,
+            religion: true,
+            bloodGroup: true,
+            createdAt: true,
+          }
+        },
+        class: true,
+        parent: true,
+      }
+    });
+    
+    res.json({ message: "Student updated successfully", student });
+  } catch (error) {
+    console.error("Update student error:", error);
+    res.status(500).json({ error: "Failed to update student" });
+  }
 };
 
 export const deleteStudent = async (req: Request, res: Response) => {

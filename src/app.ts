@@ -16,6 +16,7 @@ import announcementRoutes from "./routes/announcements";
 import recordRoutes from "./routes/records";
 import examRoutes from "./routes/exams";
 import eventRoutes from "./routes/events";
+import medicalInfoRoutes from "./routes/medicalInfo";
 
 dotenv.config();
 
@@ -38,5 +39,6 @@ app.use("/announcements", announcementRoutes);
 app.use("/records", recordRoutes);
 app.use("/exams", examRoutes);
 app.use("/events", eventRoutes);
+app.use("/medical-info", medicalInfoRoutes);
 
 export default app;
