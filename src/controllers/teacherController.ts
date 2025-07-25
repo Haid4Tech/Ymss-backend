@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../app";
 import { exclude } from "../utils/helpers";
+import bcrypt from "bcrypt";
 
 export const getAllTeachers = async (req: Request, res: Response) => {
   // Parse pagination params, with defaults
@@ -45,6 +46,10 @@ export const getTeacherById = async (req: Request, res: Response) => {
 export const createTeacher = async (req: Request, res: Response) => {
   const {
     userId,
+    name,
+    email,
+    DOB,
+    password,
     hireDate,
     previousInstitution,
     experience,
@@ -54,20 +59,44 @@ export const createTeacher = async (req: Request, res: Response) => {
     university,
     graduationYear,
   } = req.body;
-  const teacher = await prisma.teacher.create({
-    data: {
-      userId,
-      hireDate,
-      previousInstitution,
-      experience,
-      employmentType,
-      salary,
-      degree,
-      university,
-      graduationYear,
-    },
+
+  const result = await prisma.$transaction(async (tsx) => {
+    // Create the user first
+    const hashedPassword = password
+      ? await bcrypt.hash(password, 10)
+      : await bcrypt.hash(
+          `${name.split(" ")[0].toLowerCase()}${new Date(DOB).getFullYear()}`,
+          10
+        );
+
+    const user = tsx.user.create({
+      data: {
+        name,
+        email,
+        DOB,
+        password: hashedPassword,
+        role: "TEACHER",
+      },
+    });
+
+    const teacher = await prisma.teacher.create({
+      data: {
+        userId,
+        hireDate,
+        previousInstitution,
+        experience,
+        employmentType,
+        salary,
+        degree,
+        university,
+        graduationYear,
+      },
+    });
+
+    return { teacher, user };
   });
-  res.status(201).json(teacher);
+
+  res.status(201).json(result);
 };
 
 export const updateTeacher = async (req: Request, res: Response) => {
