@@ -45,7 +45,6 @@ export const getTeacherById = async (req: Request, res: Response) => {
 
 export const createTeacher = async (req: Request, res: Response) => {
   const {
-    userId,
     name,
     email,
     DOB,
@@ -69,20 +68,20 @@ export const createTeacher = async (req: Request, res: Response) => {
           10
         );
 
-    const user = tsx.user.create({
+    const user = await tsx.user.create({
       data: {
         name,
         email,
-        DOB,
+        DOB: new Date(DOB),
         password: hashedPassword,
         role: "TEACHER",
       },
     });
 
-    const teacher = await prisma.teacher.create({
+    const teacher = await tsx.teacher.create({
       data: {
-        userId,
-        hireDate,
+        userId: user.id,
+        hireDate: new Date(hireDate),
         previousInstitution,
         experience,
         employmentType,
