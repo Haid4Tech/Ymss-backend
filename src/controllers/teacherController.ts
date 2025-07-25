@@ -43,16 +43,61 @@ export const getTeacherById = async (req: Request, res: Response) => {
 };
 
 export const createTeacher = async (req: Request, res: Response) => {
-  const { userId } = req.body;
-  const teacher = await prisma.teacher.create({ data: { userId } });
+  const {
+    userId,
+    hireDate,
+    previousInstitution,
+    experience,
+    employmentType,
+    salary,
+    degree,
+    university,
+    graduationYear,
+  } = req.body;
+  const teacher = await prisma.teacher.create({
+    data: {
+      userId,
+      hireDate,
+      previousInstitution,
+      experience,
+      employmentType,
+      salary,
+      degree,
+      university,
+      graduationYear,
+    },
+  });
   res.status(201).json(teacher);
 };
 
 export const updateTeacher = async (req: Request, res: Response) => {
-  const { userId } = req.body;
+  const {
+    userId,
+    hireDate,
+    previousInstitution,
+    experience,
+    employmentType,
+    salary,
+    degree,
+    university,
+    graduationYear,
+  } = req.body;
+
+  const updateData: any = {};
+  if (userId) updateData.userId = userId;
+  if (graduationYear) updateData.graduationYear = graduationYear;
+  if (university) updateData.university = university;
+  if (degree) updateData.degree = degree;
+  if (salary) updateData.salary = salary;
+  if (employmentType) updateData.employmentType = employmentType;
+  if (experience) updateData.experience = experience;
+  if (previousInstitution) updateData.previousInstitution = previousInstitution;
+  if (hireDate !== null || hireDate !== undefined)
+    updateData.hireDate = new Date(hireDate);
+
   const teacher = await prisma.teacher.update({
     where: { id: Number(req.params.id) },
-    data: { userId },
+    data: updateData,
   });
   res.json(teacher);
 };
