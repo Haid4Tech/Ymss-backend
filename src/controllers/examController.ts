@@ -18,18 +18,47 @@ export const getExamById = async (req: Request, res: Response) => {
 };
 
 export const createExam = async (req: Request, res: Response) => {
-  const { title, date, classId, subjectId } = req.body;
+  const {
+    title,
+    date,
+    classId,
+    subjectId,
+    teacherId,
+    startTime,
+    examType,
+    duration,
+  } = req.body;
   const exam = await prisma.exam.create({
-    data: { title, date: new Date(date), classId, subjectId },
+    data: {
+      title,
+      date: new Date(date),
+      classId,
+      subjectId,
+      teacherId,
+      startTime,
+      examType,
+      duration: duration ? duration : 0,
+    },
   });
   res.status(201).json(exam);
 };
 
 export const updateExam = async (req: Request, res: Response) => {
-  const { title, date, classId, subjectId } = req.body;
+  const { title, date, classId, subjectId, teacherId, startTime, examType } =
+    req.body;
+
+  const updateData: any = {};
+  if (title) updateData.title = title;
+  if (date !== undefined || date !== null) updateData.date = new Date(date);
+  if (classId) updateData.classId = classId;
+  if (subjectId) updateData.subjectId = subjectId;
+  if (teacherId) updateData.teacherId = teacherId;
+  if (startTime) updateData.startTime = startTime;
+  if (examType) updateData.examType = examType;
+
   const exam = await prisma.exam.update({
     where: { id: Number(req.params.id) },
-    data: { title, date: new Date(date), classId, subjectId },
+    data: updateData,
   });
   res.json(exam);
 };

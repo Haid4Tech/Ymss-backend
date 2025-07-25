@@ -100,9 +100,12 @@ export const register = async (req: Request, res: Response) => {
     }
 
     console.error("Registration error:", e);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: "Internal server error",
-      details: process.env.NODE_ENV === 'development' ? (e as Error)?.message : undefined
+      details:
+        process.env.NODE_ENV === "development"
+          ? (e as Error)?.message
+          : undefined,
     });
   }
 };

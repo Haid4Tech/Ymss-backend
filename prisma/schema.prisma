@@ -8,26 +8,27 @@ datasource db {
 }
 
 model User {
-  id                Int                @id @default(autoincrement())
-  email             String             @unique
-  password          String
-  name              String
-  role              Role
-  photo             String?
-  createdAt         DateTime           @default(now())
-  DOB               DateTime?
-  gender            Gender?
-  nationality       String?
-  country           String?
-  religion          String?
-  bloodGroup        String?
-  address           String?
-  medicalInfo       MedicalInfo?
-  announcements     Announcement[]
-  events            Event[]
-  parent            Parent?
-  student           Student?
-  teacher           Teacher?
+  id            Int                @id @default(autoincrement())
+  email         String             @unique
+  password      String
+  name          String
+  role          Role
+  phone         String?
+  photo         String?
+  createdAt     DateTime           @default(now())
+  DOB           DateTime?
+  gender        Gender?
+  nationality   String?
+  country       String?
+  religion      String?
+  bloodGroup    String?
+  address       String?
+  medicalInfo   MedicalInfo?
+  announcements Announcement[]
+  events        Event[]
+  parent        Parent?
+  student       Student?
+  teacher       Teacher?
   emergencyInfo EmergencyContacts?
 }
 
@@ -36,7 +37,7 @@ model Student {
   userId         Int              @unique
   classId        Int
   parentId       Int?
-  admissionDate  DateTime
+  admissionDate  DateTime @default(now())
   previousSchool String?
   records        AcademicRecord[]
   attendance     Attendance[]
@@ -54,10 +55,19 @@ model Parent {
 }
 
 model Teacher {
-  id       Int       @id @default(autoincrement())
-  userId   Int       @unique
-  subjects Subject[]
-  user     User      @relation(fields: [userId], references: [id])
+  id                  Int       @id @default(autoincrement())
+  userId              Int       @unique
+  hireDate            DateTime  @default(now())
+  experience          String?
+  employmentType      String?
+  salary              Int?
+  degree              String?
+  university          String?
+  graduationYear      String?
+  previousInstitution String
+  subjects            Subject[]
+  user                User      @relation(fields: [userId], references: [id])
+  Exam                Exam[]
 }
 
 model Class {
@@ -69,25 +79,33 @@ model Class {
 }
 
 model Subject {
-  id             Int      @id @default(autoincrement())
-  name           String
-  classId        Int?
-  teacherId      Int?
-  previousSchool String?
-  exams          Exam[]
-  class          Class?   @relation(fields: [classId], references: [id])
-  teacher        Teacher? @relation(fields: [teacherId], references: [id])
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+  category    String?
+  weeklyHours Int?
+  gradeId     Int?
+  classId     Int?
+  teacherId   Int?
+  exams       Exam[]
+  class       Class?   @relation(fields: [classId], references: [id])
+  teacher     Teacher? @relation(fields: [teacherId], references: [id])
 }
 
 model Exam {
   id        Int      @id @default(autoincrement())
   title     String
   date      DateTime
+  startTime String
+  examType  String
+  duration  Int?
   classId   Int
   subjectId Int
+  teacherId Int
   createdAt DateTime @default(now())
   class     Class    @relation(fields: [classId], references: [id])
   subject   Subject  @relation(fields: [subjectId], references: [id])
+  teacher   Teacher? @relation(fields: [teacherId], references: [id])
   grades    Grade[]
 }
 
