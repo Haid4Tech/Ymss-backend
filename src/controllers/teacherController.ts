@@ -72,7 +72,7 @@ export const createTeacher = async (req: Request, res: Response) => {
       data: {
         name,
         email,
-        DOB: new Date(DOB),
+        DOB: new Date(DOB).toISOString(),
         password: hashedPassword,
         role: "TEACHER",
       },
@@ -81,7 +81,7 @@ export const createTeacher = async (req: Request, res: Response) => {
     const teacher = await tsx.teacher.create({
       data: {
         userId: user.id,
-        hireDate: new Date(hireDate),
+        hireDate: new Date(hireDate).toISOString(),
         previousInstitution,
         experience,
         employmentType,
