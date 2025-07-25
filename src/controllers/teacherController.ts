@@ -59,6 +59,8 @@ export const createTeacher = async (req: Request, res: Response) => {
     graduationYear,
   } = req.body;
 
+  const parsedHireDate = new Date(hireDate);
+
   const result = await prisma.$transaction(async (tsx) => {
     // Create the user first
     const hashedPassword = password
@@ -81,14 +83,14 @@ export const createTeacher = async (req: Request, res: Response) => {
     const teacher = await tsx.teacher.create({
       data: {
         userId: user.id,
-        hireDate,
+        hireDate: parsedHireDate,
         previousInstitution,
         experience,
         employmentType,
         salary,
-        degree,
-        university,
-        graduationYear,
+        degree: degree || null,
+        university: university || null,
+        graduationYear: graduationYear || null,
       },
     });
 
