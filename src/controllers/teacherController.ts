@@ -59,6 +59,15 @@ export const createTeacher = async (req: Request, res: Response) => {
     graduationYear,
   } = req.body;
 
+  const parsedDOB = new Date(DOB);
+  const parsedHireDate = new Date(hireDate);
+
+  if (isNaN(parsedDOB.getTime()) || isNaN(parsedHireDate.getTime())) {
+    return res
+      .status(400)
+      .json({ error: "Invalid date values for DOB or hireDate" });
+  }
+
   const result = await prisma.$transaction(async (tsx) => {
     // Create the user first
     const hashedPassword = password
@@ -72,7 +81,7 @@ export const createTeacher = async (req: Request, res: Response) => {
       data: {
         name,
         email,
-        DOB: new Date(DOB).toISOString(),
+        DOB: parsedDOB,
         password: hashedPassword,
         role: "TEACHER",
       },
@@ -81,7 +90,7 @@ export const createTeacher = async (req: Request, res: Response) => {
     const teacher = await tsx.teacher.create({
       data: {
         userId: user.id,
-        hireDate: new Date(hireDate).toISOString(),
+        hireDate: parsedHireDate,
         previousInstitution,
         experience,
         employmentType,
