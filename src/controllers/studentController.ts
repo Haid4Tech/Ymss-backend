@@ -63,21 +63,20 @@ export const createStudent = async (req: Request, res: Response) => {
       religion,
       bloodGroup,
       photo,
+      parentsInfo,
 
-      // Student specific data
+      // Student-specific data
       classId,
       parentId,
       admissionDate,
       previousSchool,
 
-      // Medical information
+      // Optional info
       medicalInfo,
-
-      // Emergency contact
       emergencyContact,
     } = req.body;
 
-    // Validate required fields
+    // Basic required field validation
     if (
       !name ||
       !email ||
@@ -93,38 +92,33 @@ export const createStudent = async (req: Request, res: Response) => {
       });
     }
 
-    // Check if email already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
+    // Check for existing user by email
+    const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ error: "Email already exists" });
     }
 
-    // Verify that the class exists
+    // Validate class existence
     const existingClass = await prisma.class.findUnique({
       where: { id: parseInt(classId) },
     });
-
     if (!existingClass) {
       return res.status(404).json({ error: "Class not found" });
     }
 
-    // Verify parent exists if parentId is provided
+    // Validate parent if parentId is provided
     if (parentId) {
       const existingParent = await prisma.parent.findUnique({
         where: { id: parseInt(parentId) },
       });
-
       if (!existingParent) {
         return res.status(404).json({ error: "Parent not found" });
       }
     }
 
-    // Create user and student in a transaction
-    const result = await prisma.$transaction(async (tx) => {
-      // Create the user first
+    // Transaction: Create user, parent, student, and optional medical info
+    const student = await prisma.$transaction(async (tx) => {
+      // Generate hashed password
       const hashedPassword = password
         ? await bcrypt.hash(password, 10)
         : await bcrypt.hash(
@@ -132,15 +126,35 @@ export const createStudent = async (req: Request, res: Response) => {
             10
           );
 
-      const user = await tx.user.create({
+      // Create parent user and record if parent details provided
+      const parentUser = await tx.user.create({
         data: {
+          name: parentsInfo.parentName,
+          email: parentsInfo.parentEmail,
+          phone: parentsInfo.parentPhone,
+          password: hashedPassword,
+          role: "PARENT",
+          nationality,
+          country,
+          religion,
+        },
+      });
+
+      const parentRecord = await tx.parent.create({
+        data: { userId: parentUser.id },
+      });
+
+      // Create student user
+      const studentUser = await tx.user.create({
+        data: {
+          name,
           email,
           password: hashedPassword,
-          name,
           role: "STUDENT",
           DOB: new Date(DOB),
           gender: gender.toUpperCase(),
           address,
+          phone,
           nationality,
           country,
           religion,
@@ -149,7 +163,43 @@ export const createStudent = async (req: Request, res: Response) => {
         },
       });
 
-      // Create medical info if provided
+      // Create student record
+      const studentRecord = await tx.student.create({
+        data: {
+          userId: studentUser.id,
+          classId: parseInt(classId),
+          parentId: parentRecord.id,
+          admissionDate: new Date(admissionDate),
+          previousSchool,
+          relationship: parentsInfo.relationship,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+              DOB: true,
+              gender: true,
+              address: true,
+              phone: true,
+              photo: true,
+              nationality: true,
+              country: true,
+              religion: true,
+              bloodGroup: true,
+              createdAt: true,
+              medicalInfo: true,
+              emergencyInfo: true,
+            },
+          },
+          class: true,
+          parent: true,
+        },
+      });
+
+      // Optional medical info
       if (
         medicalInfo &&
         (medicalInfo.conditions ||
@@ -160,7 +210,7 @@ export const createStudent = async (req: Request, res: Response) => {
       ) {
         await tx.medicalInfo.create({
           data: {
-            userId: user.id,
+            userId: studentUser.id,
             conditions: medicalInfo.conditions,
             allergies: medicalInfo.allergies,
             medications: medicalInfo.medications,
@@ -170,65 +220,13 @@ export const createStudent = async (req: Request, res: Response) => {
         });
       }
 
-      // Create emergency contact if provided
-      if (
-        emergencyContact &&
-        emergencyContact.name &&
-        emergencyContact.phone &&
-        emergencyContact.relation
-      ) {
-        await tx.emergencyContacts.create({
-          data: {
-            userId: user.id,
-            name: emergencyContact.name,
-            phone: emergencyContact.phone,
-            relation: emergencyContact.relation,
-          },
-        });
-      }
-
-      // Create the student record
-      const student = await tx.student.create({
-        data: {
-          userId: user.id,
-          classId: parseInt(classId),
-          parentId: parentId ? parseInt(parentId) : null,
-          admissionDate: new Date(admissionDate),
-          previousSchool,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              role: true,
-              DOB: true,
-              gender: true,
-              address: true,
-              photo: true,
-              nationality: true,
-              country: true,
-              religion: true,
-              bloodGroup: true,
-              createdAt: true,
-            },
-            include: {
-              medicalInfo: true,
-              emergencyInfo: true,
-            },
-          },
-          class: true,
-          parent: true,
-        },
-      });
-
-      return student;
+      return studentRecord;
     });
 
-    res
-      .status(201)
-      .json({ message: "Student created successfully", student: result });
+    res.status(201).json({
+      message: "Student created successfully",
+      student,
+    });
   } catch (error) {
     console.error("Create student error:", error);
     res.status(500).json({ error: "Failed to create student" });

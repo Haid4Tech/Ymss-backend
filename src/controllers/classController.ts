@@ -18,8 +18,38 @@ export const getClassById = async (req: Request, res: Response) => {
 };
 
 export const createClass = async (req: Request, res: Response) => {
-  const { name } = req.body;
-  const classObj = await prisma.class.create({ data: { name } });
+  const {
+    name,
+    capacity,
+    roomNumber,
+    description,
+    academicYear,
+    schedule,
+    exams,
+    teacherId,
+  } = req.body;
+
+  const { startDate, endDate, startTime, endTime, days } = schedule;
+
+  const parsedStartDate = new Date(startDate).toISOString();
+  const parsedEndDate = new Date(endDate).toISOString();
+
+  const classObj = await prisma.class.create({
+    data: {
+      name,
+      capacity,
+      roomNumber,
+      description,
+      academicYear,
+      startDate: parsedStartDate,
+      endDate: parsedEndDate,
+      startTime,
+      endTime,
+      days,
+      exams,
+      teacherId,
+    },
+  });
   res.status(201).json(classObj);
 };
 

@@ -59,10 +59,11 @@ export const createTeacher = async (req: Request, res: Response) => {
     graduationYear,
   } = req.body;
 
-  const parsedHireDate = new Date(hireDate);
+  const parsedHireDate = new Date(hireDate).toISOString();
+  const parsedDOB = new Date(DOB).toISOString();
 
-  const result = await prisma.$transaction(async (tsx) => {
-    // Create the user first
+  const result = await prisma.$transaction(async (tsx: any) => {
+    // hash password
     const hashedPassword = password
       ? await bcrypt.hash(password, 10)
       : await bcrypt.hash(
@@ -70,16 +71,18 @@ export const createTeacher = async (req: Request, res: Response) => {
           10
         );
 
+    // Create the user first
     const user = await tsx.user.create({
       data: {
         name,
         email,
-        DOB,
+        DOB: parsedDOB,
         password: hashedPassword,
         role: "TEACHER",
       },
     });
 
+    // create teacher
     const teacher = await tsx.teacher.create({
       data: {
         userId: user.id,

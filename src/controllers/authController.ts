@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { prisma } from "../app";
-import { Prisma } from "@prisma/client";
+import { extractErrorMessage } from "../utils/helpers";
 
 const JWT_SECRET = process.env.JWT_SECRET || "secret";
 
@@ -92,16 +92,11 @@ export const register = async (req: Request, res: Response) => {
       token: token,
     });
   } catch (e) {
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2002"
-    ) {
-      return res.status(400).json({ error: "Email already exists" });
-    }
+    const errorMessage = extractErrorMessage(e);
 
-    console.error("Registration error:", e);
     return res.status(500).json({
       error: "Internal server error",
+      message: errorMessage,
       details:
         process.env.NODE_ENV === "development"
           ? (e as Error)?.message

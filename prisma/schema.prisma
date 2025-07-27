@@ -37,8 +37,9 @@ model Student {
   userId         Int              @unique
   classId        Int
   parentId       Int?
-  admissionDate  DateTime @default(now())
+  admissionDate  DateTime         @default(now())
   previousSchool String?
+  relationship   String
   records        AcademicRecord[]
   attendance     Attendance[]
   grades         Grade[]
@@ -68,14 +69,26 @@ model Teacher {
   subjects            Subject[]
   user                User      @relation(fields: [userId], references: [id])
   Exam                Exam[]
+  Class               Class[]
 }
 
 model Class {
-  id       Int       @id @default(autoincrement())
-  name     String
-  exams    Exam[]
-  students Student[]
-  subjects Subject[]
+  id           Int       @id @default(autoincrement())
+  name         String
+  capacity     String
+  roomNumber   String
+  description  String?
+  academicYear String?
+  startDate    DateTime
+  endDate      DateTime
+  startTime    String?
+  endTime      String?
+  days         String[]
+  exams        Exam[]
+  students     Student[]
+  subjects     Subject[]
+  teacherId    Int
+  teacher      Teacher   @relation(fields: [teacherId], references: [id])
 }
 
 model Subject {
@@ -151,12 +164,17 @@ model AcademicRecord {
 }
 
 model Announcement {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String
-  createdAt DateTime @default(now())
-  authorId  Int
-  author    User     @relation(fields: [authorId], references: [id])
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String
+  priority    String?
+  category    String
+  publishDate DateTime  @default(now())
+  expiryDate  DateTime?
+  attachment  String?
+  createdAt   DateTime  @default(now())
+  authorId    Int
+  author      User      @relation(fields: [authorId], references: [id])
 }
 
 model MedicalInfo {
