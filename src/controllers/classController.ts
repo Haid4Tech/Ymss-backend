@@ -3,7 +3,11 @@ import { prisma } from "../app";
 
 export const getAllClasses = async (req: Request, res: Response) => {
   const classes = await prisma.class.findMany({
-    include: { students: true, subjects: true },
+    include: {
+      students: true,
+      subjects: true,
+      teacher: { include: { user: { select: { name: true, email: true } } } },
+    },
   });
   res.json(classes);
 };

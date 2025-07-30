@@ -3,6 +3,11 @@ import bcrypt from "bcrypt";
 import { prisma } from "../app";
 import { exclude } from "../utils/helpers";
 
+/**
+ * Get All Students
+ * @param req
+ * @param res
+ */
 export const getAllStudents = async (req: Request, res: Response) => {
   // Parse pagination params, with defaults
   const page = parseInt(req.query.page as string) || 1;
@@ -27,17 +32,51 @@ export const getAllStudents = async (req: Request, res: Response) => {
         },
       },
       class: true,
-      parent: true,
+      enrollments: {
+        include: {
+          subject: true,
+          attendance: true,
+        },
+      },
+      parents: {
+        include: {
+          parent: {
+            include: { user: true },
+          },
+        },
+      },
     },
   });
 
   res.json({ students, page, limit, total });
 };
 
+/**
+ * Get Student By ID
+ * @param req
+ * @param res
+ * @returns
+ */
 export const getStudentById = async (req: Request, res: Response) => {
   const student = await prisma.student.findUnique({
     where: { id: Number(req.params.id) },
-    include: { user: true, class: true, parent: true },
+    include: {
+      user: true,
+      class: true,
+      enrollments: {
+        include: {
+          subject: true,
+          attendance: true,
+        },
+      },
+      parents: {
+        include: {
+          parent: {
+            include: { user: true },
+          },
+        },
+      },
+    },
   });
 
   if (!student) return res.status(404).json({ error: "Student not found" });
@@ -47,6 +86,12 @@ export const getStudentById = async (req: Request, res: Response) => {
   res.json({ ...student, user: cleanUser });
 };
 
+/**
+ * Create Students
+ * @param req
+ * @param res
+ * @returns
+ */
 export const createStudent = async (req: Request, res: Response) => {
   try {
     const {
@@ -168,7 +213,6 @@ export const createStudent = async (req: Request, res: Response) => {
         data: {
           userId: studentUser.id,
           classId: parseInt(classId),
-          parentId: parentRecord.id,
           admissionDate: new Date(admissionDate),
           previousSchool,
           relationship: parentsInfo.relationship,
@@ -195,7 +239,19 @@ export const createStudent = async (req: Request, res: Response) => {
             },
           },
           class: true,
+          parents: true,
+        },
+      });
+
+      // create parent - student relationship
+      await tx.parentStudent.create({
+        data: {
+          parentId: parentRecord.id,
+          studentId: studentRecord.id,
+        },
+        include: {
           parent: true,
+          student: true,
         },
       });
 
@@ -299,7 +355,7 @@ export const updateStudent = async (req: Request, res: Response) => {
           },
         },
         class: true,
-        parent: true,
+        parents: true,
       },
     });
 

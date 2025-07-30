@@ -21,18 +21,18 @@ export const getGradesBySubject = async (req: Request, res: Response) => {
   const userId = (req as any).userId;
   const role = (req as any).role;
 
-  // Get the subject, including its teacher
+  // Get the subject, including its teachers
   const subject = await prisma.subject.findUnique({
     where: { id: subjectId },
-    select: { teacher: { select: { userId: true } } },
+    select: { teachers: { select: { teacher: { select: { userId: true } } } } },
   });
 
   if (!subject) {
     return res.status(404).json({ error: "Subject not found" });
   }
 
-  // Only allow if admin or the teacher for the subject
-  const teacherUserId = subject.teacher?.userId;
+  // Only allow if admin or the first teacher for the subject
+  const teacherUserId = subject.teachers?.[0]?.teacher?.userId;
   if (role !== "ADMIN" && userId !== teacherUserId) {
     return res.status(403).json({
       error:
@@ -65,12 +65,12 @@ export const getGradesByExam = async (req: Request, res: Response) => {
   const userId = (req as any).userId;
   const role = (req as any).role;
 
-  // Get the exam, including its subject and teacher
+  // Get the exam, including its subject and teachers
   const exam = await prisma.exam.findUnique({
     where: { id: examId },
     include: {
       subject: {
-        select: { teacher: { select: { userId: true } } },
+        select: { teachers: { select: { teacher: { select: { userId: true } } } } },
       },
     },
   });
@@ -79,8 +79,8 @@ export const getGradesByExam = async (req: Request, res: Response) => {
     return res.status(404).json({ error: "Exam not found" });
   }
 
-  // Only allow if admin or the teacher for the subject
-  const teacherUserId = exam.subject?.teacher?.userId;
+  // Only allow if admin or the first teacher for the subject
+  const teacherUserId = exam.subject?.teachers?.[0]?.teacher?.userId;
   if (role !== "ADMIN" && userId !== teacherUserId) {
     return res.status(403).json({
       error:
@@ -111,14 +111,14 @@ export const updateGrade = async (req: Request, res: Response) => {
   const userId = (req as any).userId;
   const role = (req as any).role;
 
-  // Get the grade, including exam -> subject -> teacher
+  // Get the grade, including exam -> subject -> teachers
   const grade = await prisma.grade.findUnique({
     where: { id: gradeId },
     include: {
       exam: {
         include: {
           subject: {
-            select: { teacher: { select: { userId: true } } },
+            select: { teachers: { select: { teacher: { select: { userId: true } } } } },
           },
         },
       },
@@ -129,8 +129,8 @@ export const updateGrade = async (req: Request, res: Response) => {
     return res.status(404).json({ error: "Grade not found" });
   }
 
-  // Only allow if admin or the teacher for the subject
-  const teacherUserId = grade.exam.subject?.teacher?.userId;
+  // Only allow if admin or the first teacher for the subject
+  const teacherUserId = grade.exam.subject?.teachers?.[0]?.teacher?.userId;
   if (role !== "ADMIN" && userId !== teacherUserId) {
     return res
       .status(403)

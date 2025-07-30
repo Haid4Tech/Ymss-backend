@@ -19,10 +19,10 @@ export const getAnnouncementById = async (req: Request, res: Response) => {
 };
 
 export const createAnnouncement = async (req: Request, res: Response) => {
-  const { title, content, category, priority } = req.body;
+  const { title, content, category, priority, attachments } = req.body;
   const authorId = (req as any).userId;
   const announcement = await prisma.announcement.create({
-    data: { title, content, authorId, category },
+    data: { title, content, authorId, category, priority, attachments },
   });
   res.status(201).json(announcement);
 };

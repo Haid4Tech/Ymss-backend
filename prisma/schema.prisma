@@ -36,46 +36,55 @@ model Student {
   id             Int              @id @default(autoincrement())
   userId         Int              @unique
   classId        Int
-  parentId       Int?
   admissionDate  DateTime         @default(now())
   previousSchool String?
   relationship   String
   records        AcademicRecord[]
-  attendance     Attendance[]
-  grades         Grade[]
+  enrollments    Enrollment[]
   class          Class            @relation(fields: [classId], references: [id])
-  parent         Parent?          @relation(fields: [parentId], references: [id])
   user           User             @relation(fields: [userId], references: [id])
+  parents        ParentStudent[] // Many-to-many for multiple guardians
+  Grade          Grade[]
 }
 
 model Parent {
-  id       Int       @id @default(autoincrement())
-  userId   Int       @unique
-  user     User      @relation(fields: [userId], references: [id])
-  students Student[]
+  id       Int             @id @default(autoincrement())
+  userId   Int             @unique
+  user     User            @relation(fields: [userId], references: [id])
+  students ParentStudent[] // Many-to-many
+}
+
+model ParentStudent {
+  id        Int     @id @default(autoincrement())
+  parentId  Int
+  studentId Int
+  parent    Parent  @relation(fields: [parentId], references: [id])
+  student   Student @relation(fields: [studentId], references: [id])
+
+  @@unique([parentId, studentId])
 }
 
 model Teacher {
-  id                  Int       @id @default(autoincrement())
-  userId              Int       @unique
-  hireDate            DateTime  @default(now())
+  id                  Int              @id @default(autoincrement())
+  userId              Int              @unique
+  hireDate            DateTime         @default(now())
   experience          String?
   employmentType      String?
   salary              Int?
   degree              String?
   university          String?
   graduationYear      String?
-  previousInstitution String
-  subjects            Subject[]
-  user                User      @relation(fields: [userId], references: [id])
-  Exam                Exam[]
-  Class               Class[]
+  previousInstitution String?
+  user                User             @relation(fields: [userId], references: [id])
+  classes             Class[] // Classes taught
+  subjects            SubjectTeacher[] // Many-to-many for co-teaching
+  exams               Exam[]
 }
 
 model Class {
   id           Int       @id @default(autoincrement())
   name         String
-  capacity     String
+  capacity     Int
   roomNumber   String
   description  String?
   academicYear String?
@@ -84,25 +93,56 @@ model Class {
   startTime    String?
   endTime      String?
   days         String[]
-  exams        Exam[]
   students     Student[]
   subjects     Subject[]
-  teacherId    Int
-  teacher      Teacher   @relation(fields: [teacherId], references: [id])
+  teacherId    Int?
+  teacher      Teacher?   @relation(fields: [teacherId], references: [id])
+  exams        Exam[]
 }
 
 model Subject {
-  id          Int      @id @default(autoincrement())
+  id          Int              @id @default(autoincrement())
   name        String
   description String
   category    String?
   weeklyHours Int?
-  gradeId     Int?
-  classId     Int?
-  teacherId   Int?
+  classId     Int
+  class       Class            @relation(fields: [classId], references: [id])
+  enrollments Enrollment[]
+  teachers    SubjectTeacher[] // Many-to-many for co-teaching
   exams       Exam[]
-  class       Class?   @relation(fields: [classId], references: [id])
-  teacher     Teacher? @relation(fields: [teacherId], references: [id])
+}
+
+model SubjectTeacher {
+  id        Int     @id @default(autoincrement())
+  subjectId Int
+  teacherId Int
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  teacher   Teacher @relation(fields: [teacherId], references: [id])
+
+  @@unique([subjectId, teacherId])
+}
+
+model Enrollment {
+  id         Int                 @id @default(autoincrement())
+  studentId  Int
+  subjectId  Int
+  enrolledAt DateTime            @default(now())
+  student    Student             @relation(fields: [studentId], references: [id])
+  subject    Subject             @relation(fields: [subjectId], references: [id])
+  attendance SubjectAttendance[]
+
+  @@unique([studentId, subjectId])
+}
+
+model SubjectAttendance {
+  id           Int              @id @default(autoincrement())
+  enrollmentId Int
+  date         DateTime
+  status       AttendanceStatus
+  enrollment   Enrollment       @relation(fields: [enrollmentId], references: [id])
+
+  @@unique([enrollmentId, date])
 }
 
 model Exam {
@@ -118,30 +158,8 @@ model Exam {
   createdAt DateTime @default(now())
   class     Class    @relation(fields: [classId], references: [id])
   subject   Subject  @relation(fields: [subjectId], references: [id])
-  teacher   Teacher? @relation(fields: [teacherId], references: [id])
+  teacher   Teacher  @relation(fields: [teacherId], references: [id])
   grades    Grade[]
-}
-
-model Event {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  date        DateTime
-  startTime   String
-  endTime     String
-  category    String
-  color       String
-  createdAt   DateTime @default(now())
-  createdById Int
-  createdBy   User     @relation(fields: [createdById], references: [id])
-}
-
-model Attendance {
-  id        Int      @id @default(autoincrement())
-  studentId Int
-  date      DateTime
-  present   Boolean
-  student   Student  @relation(fields: [studentId], references: [id])
 }
 
 model Grade {
@@ -164,17 +182,22 @@ model AcademicRecord {
 }
 
 model Announcement {
-  id          Int       @id @default(autoincrement())
-  title       String
-  content     String
-  priority    String?
-  category    String
-  publishDate DateTime  @default(now())
-  expiryDate  DateTime?
-  attachment  String?
-  createdAt   DateTime  @default(now())
-  authorId    Int
-  author      User      @relation(fields: [authorId], references: [id])
+  id                Int       @id @default(autoincrement())
+  title             String
+  content           String
+  priority          String?
+  category          String
+  targetAudience    String?
+  isPublished       Boolean   @default(true)
+  publishDate       DateTime  @default(now())
+  expiryDate        DateTime?
+  sendNotification  Boolean   @default(true)
+  emailNotification Boolean   @default(false)
+  smsNotification   Boolean   @default(false)
+  attachments       String[]
+  createdAt         DateTime  @default(now())
+  authorId          Int
+  author            User      @relation(fields: [authorId], references: [id])
 }
 
 model MedicalInfo {
@@ -198,6 +221,20 @@ model EmergencyContacts {
   relation String
 }
 
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  date        DateTime
+  startTime   String
+  endTime     String
+  category    String
+  color       String
+  createdAt   DateTime @default(now())
+  createdById Int
+  createdBy   User     @relation(fields: [createdById], references: [id])
+}
+
 enum Role {
   STUDENT
   PARENT
@@ -215,4 +252,11 @@ enum Gender {
   MALE
   FEMALE
   OTHER
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
 }

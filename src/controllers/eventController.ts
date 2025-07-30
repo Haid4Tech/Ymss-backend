@@ -2,7 +2,11 @@ import { Request, Response } from "express";
 import { prisma } from "../app";
 
 export const getAllEvents = async (req: Request, res: Response) => {
-  const events = await prisma.event.findMany();
+  const events = await prisma.event.findMany({
+    include: {
+      createdBy: true,
+    },
+  });
   res.json(events);
 };
 
