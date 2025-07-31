@@ -44,13 +44,7 @@ export const getSubjectById = async (req: Request, res: Response) => {
 };
 
 export const createSubject = async (req: Request, res: Response) => {
-  const {
-    name,
-    classId,
-    description,
-    category,
-    weeklyHours,
-  } = req.body;
+  const { name, classId, description, category, weeklyHours } = req.body;
 
   if (!name && !description) {
     return res.status(400).json({ error: "Check data" });
@@ -69,13 +63,7 @@ export const createSubject = async (req: Request, res: Response) => {
 };
 
 export const updateSubject = async (req: Request, res: Response) => {
-  const {
-    name,
-    classId,
-    description,
-    category,
-    weeklyHours,
-  } = req.body;
+  const { name, classId, description, category, weeklyHours } = req.body;
 
   const updateData: any = {};
   if (name) updateData.name = name;

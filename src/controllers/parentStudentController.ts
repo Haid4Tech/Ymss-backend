@@ -32,8 +32,13 @@ export const getStudentsForParent = async (req: Request, res: Response) => {
 
 export const getParentsForStudent = async (req: Request, res: Response) => {
   const studentId = Number(req.params.studentId);
+
+  if (isNaN(studentId)) {
+    return res.status(400).json({ error: "Invalid or missing studentId" });
+  }
+
   const parents = await prisma.parentStudent.findMany({
-    where: { studentId },
+    where: { id: studentId },
     include: { parent: { include: { user: true } } },
   });
   res.json(parents);

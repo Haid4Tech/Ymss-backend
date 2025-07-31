@@ -19,7 +19,8 @@ export const getAllTeachers = async (req: Request, res: Response) => {
         select: {
           id: true,
           email: true,
-          name: true,
+          firstname: true,
+          lastname: true,
           role: true,
           // Do NOT include password
         },
@@ -57,6 +58,7 @@ export const createTeacher = async (req: Request, res: Response) => {
     degree,
     university,
     graduationYear,
+    subjectId,
   } = req.body;
 
   const parsedHireDate = new Date(hireDate).toISOString();
@@ -97,6 +99,16 @@ export const createTeacher = async (req: Request, res: Response) => {
       },
     });
 
+    // create a subject - teacher relationship if subjectId exists
+    if (subjectId) {
+      await tsx.subjectTeacher.create({
+        data: {
+          subjectId: subjectId,
+          teacherId: teacher.id,
+        },
+      });
+    }
+
     return { teacher, user };
   });
 
@@ -105,7 +117,19 @@ export const createTeacher = async (req: Request, res: Response) => {
 
 export const updateTeacher = async (req: Request, res: Response) => {
   const {
-    userId,
+    firstname,
+    lastname,
+    email,
+    DOB,
+    gender,
+    nationality,
+    phone,
+    street,
+    city,
+    state,
+    zipcode,
+    country,
+
     hireDate,
     previousInstitution,
     experience,
@@ -116,8 +140,22 @@ export const updateTeacher = async (req: Request, res: Response) => {
     graduationYear,
   } = req.body;
 
+  const userUpdateField = {
+    firstname,
+    lastname,
+    email,
+    DOB,
+    gender,
+    nationality,
+    phone,
+    street,
+    city,
+    state,
+    zipcode,
+    country,
+  };
+
   const updateData: any = {};
-  if (userId) updateData.userId = userId;
   if (graduationYear) updateData.graduationYear = graduationYear;
   if (university) updateData.university = university;
   if (degree) updateData.degree = degree;
@@ -130,7 +168,12 @@ export const updateTeacher = async (req: Request, res: Response) => {
 
   const teacher = await prisma.teacher.update({
     where: { id: Number(req.params.id) },
-    data: updateData,
+    data: {
+      ...updateData,
+      user: {
+        update: userUpdateField,
+      },
+    },
   });
   res.json(teacher);
 };

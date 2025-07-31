@@ -6,7 +6,11 @@ export const getAllClasses = async (req: Request, res: Response) => {
     include: {
       students: true,
       subjects: true,
-      teacher: { include: { user: { select: { name: true, email: true } } } },
+      teacher: {
+        include: {
+          user: { select: { firstname: true, lastname: true, email: true } },
+        },
+      },
     },
   });
   res.json(classes);
@@ -22,39 +26,43 @@ export const getClassById = async (req: Request, res: Response) => {
 };
 
 export const createClass = async (req: Request, res: Response) => {
-  const {
-    name,
-    capacity,
-    roomNumber,
-    description,
-    academicYear,
-    schedule,
-    exams,
-    teacherId,
-  } = req.body;
-
-  const { startDate, endDate, startTime, endTime, days } = schedule;
-
-  const parsedStartDate = new Date(startDate).toISOString();
-  const parsedEndDate = new Date(endDate).toISOString();
-
-  const classObj = await prisma.class.create({
-    data: {
+  try {
+    const {
       name,
       capacity,
       roomNumber,
       description,
       academicYear,
-      startDate: parsedStartDate,
-      endDate: parsedEndDate,
-      startTime,
-      endTime,
-      days,
+      schedule,
       exams,
       teacherId,
-    },
-  });
-  res.status(201).json(classObj);
+    } = req.body;
+
+    const { startDate, endDate, startTime, endTime, days } = schedule;
+
+    const parsedStartDate = new Date(startDate).toISOString();
+    const parsedEndDate = new Date(endDate).toISOString();
+
+    const classObj = await prisma.class.create({
+      data: {
+        name,
+        capacity,
+        roomNumber,
+        description,
+        academicYear,
+        startDate: parsedStartDate,
+        endDate: parsedEndDate,
+        startTime,
+        endTime,
+        days,
+        exams,
+        teacherId,
+      },
+    });
+    res.status(201).json(classObj);
+  } catch (error) {
+    return error;
+  }
 };
 
 export const updateClass = async (req: Request, res: Response) => {

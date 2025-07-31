@@ -37,4 +37,4 @@ export const getSubjectsForTeacher = async (req: Request, res: Response) => {
     include: { subject: true },
   });
   res.json(subjects);
-}; 
+};

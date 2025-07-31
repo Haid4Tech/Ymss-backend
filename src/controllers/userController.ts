@@ -64,13 +64,17 @@ export const updateUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const {
-      name,
+      firstname,
+      lastname,
       email,
       role,
       password,
       DOB,
       gender,
-      address,
+      city,
+      state,
+      zipcode,
+      street,
       photo,
       nationality,
       country,
@@ -94,7 +98,8 @@ export const updateUser = async (req: Request, res: Response) => {
 
     // Prepare update data
     const updateData: any = {};
-    if (name) updateData.name = name;
+    if (firstname) updateData.firstname = firstname;
+    if (lastname) updateData.lastname = lastname;
     if (email) updateData.email = email;
     if (role) updateData.role = role; // Admin can update any role
     if (password) {
@@ -102,7 +107,10 @@ export const updateUser = async (req: Request, res: Response) => {
     }
     if (DOB) updateData.DOB = new Date(DOB);
     if (gender) updateData.gender = gender;
-    if (address) updateData.address = address;
+    if (city) updateData.city = city;
+    if (state) updateData.state = state;
+    if (zipcode) updateData.zipcode = zipcode;
+    if (street) updateData.street = street;
     if (photo !== undefined) updateData.photo = photo;
     if (nationality !== undefined) updateData.nationality = nationality;
     if (country !== undefined) updateData.country = country;
@@ -172,11 +180,15 @@ export const createUser = async (req: Request, res: Response) => {
     const {
       email,
       password,
-      name,
+      firstname,
+      lastname,
+      city,
+      street,
+      zipcode,
+      state,
       role,
       DOB,
       gender,
-      address,
       photo,
       nationality,
       country,
@@ -184,13 +196,21 @@ export const createUser = async (req: Request, res: Response) => {
       bloodGroup,
     } = req.body;
 
-    if (!email || !password || !name || !role || !DOB || !gender || !address) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Email, password, name, role, DOB, gender, and address are required fields",
-        });
+    if (
+      !email ||
+      !password ||
+      !firstname ||
+      lastname ||
+      !role ||
+      !DOB ||
+      !gender ||
+      !state ||
+      city
+    ) {
+      return res.status(400).json({
+        error:
+          "Email, password, name, role, DOB, gender, and address are required fields",
+      });
     }
 
     if (
@@ -217,11 +237,15 @@ export const createUser = async (req: Request, res: Response) => {
       data: {
         email,
         password: hashedPassword,
-        name,
+        firstname,
+        lastname,
         role,
         DOB: new Date(DOB),
         gender,
-        address,
+        street,
+        city,
+        zipcode,
+        state,
         photo,
         nationality,
         country,
@@ -237,12 +261,10 @@ export const createUser = async (req: Request, res: Response) => {
     // Exclude password from response
     const { password: ____, ...userWithoutPassword } = user;
 
-    res
-      .status(201)
-      .json({
-        message: "User created successfully",
-        user: userWithoutPassword,
-      });
+    res.status(201).json({
+      message: "User created successfully",
+      user: userWithoutPassword,
+    });
   } catch (error) {
     console.error("Create user error:", error);
     res.status(500).json({ error: "Failed to create user" });

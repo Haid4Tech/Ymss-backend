@@ -11,9 +11,8 @@ model User {
   id            Int                @id @default(autoincrement())
   email         String             @unique
   password      String
-  name          String
+  firstname     String
   role          Role
-  phone         String?
   photo         String?
   createdAt     DateTime           @default(now())
   DOB           DateTime?
@@ -22,14 +21,19 @@ model User {
   country       String?
   religion      String?
   bloodGroup    String?
-  address       String?
-  medicalInfo   MedicalInfo?
+  state         String?
+  phone         String?
+  street        String?
+  zipcode       String?
+  city          String?
+  lastname      String?
   announcements Announcement[]
+  emergencyInfo EmergencyContacts?
   events        Event[]
+  medicalInfo   MedicalInfo?
   parent        Parent?
   student       Student?
   teacher       Teacher?
-  emergencyInfo EmergencyContacts?
 }
 
 model Student {
@@ -41,17 +45,17 @@ model Student {
   relationship   String
   records        AcademicRecord[]
   enrollments    Enrollment[]
+  Grade          Grade[]
+  parents        ParentStudent[]
   class          Class            @relation(fields: [classId], references: [id])
   user           User             @relation(fields: [userId], references: [id])
-  parents        ParentStudent[] // Many-to-many for multiple guardians
-  Grade          Grade[]
 }
 
 model Parent {
   id       Int             @id @default(autoincrement())
   userId   Int             @unique
   user     User            @relation(fields: [userId], references: [id])
-  students ParentStudent[] // Many-to-many
+  students ParentStudent[]
 }
 
 model ParentStudent {
@@ -67,50 +71,50 @@ model ParentStudent {
 model Teacher {
   id                  Int              @id @default(autoincrement())
   userId              Int              @unique
-  hireDate            DateTime         @default(now())
-  experience          String?
-  employmentType      String?
-  salary              Int?
   degree              String?
-  university          String?
+  employmentType      String?
+  experience          String?
   graduationYear      String?
+  hireDate            DateTime         @default(now())
   previousInstitution String?
-  user                User             @relation(fields: [userId], references: [id])
-  classes             Class[] // Classes taught
-  subjects            SubjectTeacher[] // Many-to-many for co-teaching
+  salary              Int?
+  university          String?
+  classes             Class[]
   exams               Exam[]
+  subjects            SubjectTeacher[]
+  user                User             @relation(fields: [userId], references: [id])
 }
 
 model Class {
   id           Int       @id @default(autoincrement())
   name         String
-  capacity     Int
-  roomNumber   String
-  description  String?
   academicYear String?
-  startDate    DateTime
-  endDate      DateTime
-  startTime    String?
-  endTime      String?
+  capacity     Int
   days         String[]
+  description  String?
+  endDate      DateTime
+  endTime      String?
+  roomNumber   String
+  startDate    DateTime
+  startTime    String?
+  teacherId    Int?
+  teacher      Teacher?  @relation(fields: [teacherId], references: [id])
+  exams        Exam[]
   students     Student[]
   subjects     Subject[]
-  teacherId    Int?
-  teacher      Teacher?   @relation(fields: [teacherId], references: [id])
-  exams        Exam[]
 }
 
 model Subject {
   id          Int              @id @default(autoincrement())
   name        String
-  description String
-  category    String?
-  weeklyHours Int?
   classId     Int
-  class       Class            @relation(fields: [classId], references: [id])
+  category    String?
+  description String
+  weeklyHours Int?
   enrollments Enrollment[]
-  teachers    SubjectTeacher[] // Many-to-many for co-teaching
   exams       Exam[]
+  class       Class            @relation(fields: [classId], references: [id])
+  teachers    SubjectTeacher[]
 }
 
 model SubjectTeacher {
@@ -149,13 +153,13 @@ model Exam {
   id        Int      @id @default(autoincrement())
   title     String
   date      DateTime
-  startTime String
-  examType  String
-  duration  Int?
   classId   Int
   subjectId Int
-  teacherId Int
   createdAt DateTime @default(now())
+  duration  Int?
+  examType  String
+  startTime String
+  teacherId Int
   class     Class    @relation(fields: [classId], references: [id])
   subject   Subject  @relation(fields: [subjectId], references: [id])
   teacher   Teacher  @relation(fields: [teacherId], references: [id])
@@ -185,40 +189,39 @@ model Announcement {
   id                Int       @id @default(autoincrement())
   title             String
   content           String
-  priority          String?
-  category          String
-  targetAudience    String?
-  isPublished       Boolean   @default(true)
-  publishDate       DateTime  @default(now())
-  expiryDate        DateTime?
-  sendNotification  Boolean   @default(true)
-  emailNotification Boolean   @default(false)
-  smsNotification   Boolean   @default(false)
-  attachments       String[]
   createdAt         DateTime  @default(now())
   authorId          Int
+  attachments       String[]
+  category          String
+  emailNotification Boolean   @default(false)
+  expiryDate        DateTime?
+  isPublished       Boolean   @default(true)
+  priority          String?
+  publishDate       DateTime  @default(now())
+  sendNotification  Boolean   @default(true)
+  smsNotification   Boolean   @default(false)
+  targetAudience    String?
   author            User      @relation(fields: [authorId], references: [id])
 }
 
 model MedicalInfo {
-  id     Int  @id @default(autoincrement())
-  userId Int  @unique
-  user   User @relation(fields: [userId], references: [id])
-
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
   conditions  String?
   allergies   String?
   medications String?
   doctorName  String?
   doctorPhone String?
+  user        User    @relation(fields: [userId], references: [id])
 }
 
 model EmergencyContacts {
   id       Int    @id @default(autoincrement())
   userId   Int    @unique
-  user     User   @relation(fields: [userId], references: [id])
   name     String
   phone    String
   relation String
+  user     User   @relation(fields: [userId], references: [id])
 }
 
 model Event {
