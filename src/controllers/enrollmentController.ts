@@ -1,11 +1,47 @@
 import { Request, Response } from "express";
 import { prisma } from "../app";
 
+export const getAllEnrollments = async (req: Request, res: Response) => {
+  try {
+    const enrollments = await prisma.enrollment.findMany({
+      include: {
+        student: {
+          include: {
+            user: true,
+            class: true,
+          },
+        },
+        subject: {
+          include: {
+            class: true,
+          },
+        },
+      },
+    });
+    res.json({ enrollments, page: 1, limit: 100, total: enrollments.length });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const createEnrollment = async (req: Request, res: Response) => {
   const { studentId, subjectId } = req.body;
   try {
     const enrollment = await prisma.enrollment.create({
-      data: { studentId, subjectId }
+      data: { studentId, subjectId },
+      include: {
+        student: {
+          include: {
+            user: true,
+            class: true,
+          },
+        },
+        subject: {
+          include: {
+            class: true,
+          },
+        },
+      },
     });
     res.status(201).json(enrollment);
   } catch (error: any) {
@@ -17,7 +53,13 @@ export const getEnrollmentsByStudent = async (req: Request, res: Response) => {
   const studentId = Number(req.params.studentId);
   const enrollments = await prisma.enrollment.findMany({
     where: { studentId },
-    include: { subject: true }
+    include: {
+      subject: {
+        include: {
+          class: true,
+        },
+      },
+    },
   });
   res.json(enrollments);
 };
