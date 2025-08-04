@@ -116,16 +116,16 @@ export async function getSubjectByClassId(req: Request, res: Response) {
   }
 
   try {
-    const students = await prisma.subject.findMany({
+    const subjects = await prisma.subject.findMany({
       where: { classId },
       include: {
         class: true,
       },
     });
 
-    return res.status(200).json(students);
+    return res.status(200).json(subjects);
   } catch (error) {
-    console.error("Error fetching students:", error);
+    console.error("Error fetching subjects:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }

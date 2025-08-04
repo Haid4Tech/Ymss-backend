@@ -10,6 +10,11 @@ router.get("/:id", authMiddleware, studentController.getStudentById);
 router.post("/", adminMiddleware, studentController.createStudent);
 router.patch("/:id", authMiddleware, studentController.updateStudent);
 router.delete("/:id", authMiddleware, studentController.deleteStudent);
+router.get(
+  "/:classId/class",
+  authMiddleware,
+  studentController.getStudentByClassId
+);
 
 // Parent - Student
 router.get(

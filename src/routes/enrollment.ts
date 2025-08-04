@@ -16,6 +16,11 @@ router.get(
   authMiddleware,
   enrollmentController.getEnrollmentsBySubject
 );
+router.get(
+  "/class/:classId",
+  authMiddleware,
+  enrollmentController.getEnrollmentByClass
+);
 router.delete("/:id", authMiddleware, enrollmentController.deleteEnrollment);
 
 export default router;

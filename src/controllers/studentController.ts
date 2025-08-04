@@ -490,3 +490,46 @@ export const deleteStudent = async (req: Request, res: Response) => {
   await prisma.student.delete({ where: { id: Number(req.params.id) } });
   res.status(204).send();
 };
+
+/**
+ * Get Students By Class ID
+ * @param req
+ * @param res
+ * @returns
+ */
+export const getStudentByClassId = async (req: Request, res: Response) => {
+  const classId = Number(req.params.classId);
+
+  if (isNaN(classId)) {
+    return res.status(400).json({ error: "Invalid class ID" });
+  }
+
+  try {
+    const students = await prisma.student.findMany({
+      where: { classId: Number(classId) },
+      include: {
+        class: true,
+        user: {
+          select: {
+            firstname: true,
+            lastname: true,
+          },
+        },
+        enrollments: {
+          include: {
+            subject: true,
+            attendance: true,
+          },
+        },
+      },
+    });
+
+    if (students.length == 0)
+      return res.status(404).json({ error: "Students not found" });
+
+    return res.status(200).json(students);
+  } catch (error) {
+    console.error("Error fetching Students:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
