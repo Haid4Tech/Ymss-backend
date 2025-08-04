@@ -68,7 +68,7 @@ export const getEnrollmentsBySubject = async (req: Request, res: Response) => {
   const subjectId = Number(req.params.subjectId);
   const enrollments = await prisma.enrollment.findMany({
     where: { subjectId },
-    include: { student: { include: { user: true } } }
+    include: { student: { include: { user: true, class: true } } },
   });
   res.json(enrollments);
 };
@@ -77,4 +77,4 @@ export const deleteEnrollment = async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   await prisma.enrollment.delete({ where: { id } });
   res.status(204).send();
-}; 
+};

@@ -19,7 +19,14 @@ export const getAllClasses = async (req: Request, res: Response) => {
 export const getClassById = async (req: Request, res: Response) => {
   const classObj = await prisma.class.findUnique({
     where: { id: Number(req.params.id) },
-    include: { students: true, subjects: true },
+    include: {
+      students: {
+        include: {
+          user: true,
+        },
+      },
+      subjects: true,
+    },
   });
   if (!classObj) return res.status(404).json({ error: "Class not found" });
   res.json(classObj);

@@ -48,13 +48,13 @@ model Student {
   Grade          Grade[]
   parents        ParentStudent[]
   class          Class            @relation(fields: [classId], references: [id])
-  user           User             @relation(fields: [userId], references: [id])
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Parent {
   id       Int             @id @default(autoincrement())
   userId   Int             @unique
-  user     User            @relation(fields: [userId], references: [id])
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   students ParentStudent[]
 }
 
@@ -82,7 +82,7 @@ model Teacher {
   classes             Class[]
   exams               Exam[]
   subjects            SubjectTeacher[]
-  user                User             @relation(fields: [userId], references: [id])
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Class {
@@ -212,7 +212,7 @@ model MedicalInfo {
   medications String?
   doctorName  String?
   doctorPhone String?
-  user        User    @relation(fields: [userId], references: [id])
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model EmergencyContacts {
@@ -221,7 +221,7 @@ model EmergencyContacts {
   name     String
   phone    String
   relation String
-  user     User   @relation(fields: [userId], references: [id])
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Event {

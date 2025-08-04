@@ -207,7 +207,8 @@ export const createStudent = async (req: Request, res: Response) => {
       // Create parent user and record if parent details provided
       const parentUser = await tx.user.create({
         data: {
-          firstname: parentsInfo.parentName,
+          firstname: parentsInfo.parentfirstname,
+          lastname: parentsInfo.parentlastname,
           email: parentsInfo.parentEmail,
           phone: parentsInfo.parentPhone,
           password: hashedPassword,
@@ -285,16 +286,18 @@ export const createStudent = async (req: Request, res: Response) => {
       });
 
       // create parent - student relationship
-      await tx.parentStudent.create({
-        data: {
-          parentId: parentRecord.id,
-          studentId: studentRecord.id,
-        },
-        include: {
-          parent: true,
-          student: true,
-        },
-      });
+      if (studentRecord && parentRecord) {
+        await tx.parentStudent.create({
+          data: {
+            parentId: parentRecord.id,
+            studentId: studentRecord.id,
+          },
+          include: {
+            parent: true,
+            student: true,
+          },
+        });
+      }
 
       // Optional medical info
       if (
@@ -363,7 +366,6 @@ export const updateStudent = async (req: Request, res: Response) => {
     } = req.body;
 
     const studentId = parseInt(req.params.id);
-
     const existingStudent = await prisma.student.findUnique({
       where: { id: studentId },
     });
@@ -464,7 +466,7 @@ export const updateStudent = async (req: Request, res: Response) => {
             medicalInfo: true,
           },
         },
-        class: true,
+        // class: true,
         parents: true,
       },
     });
