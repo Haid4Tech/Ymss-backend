@@ -77,11 +77,11 @@ export const register = async (req: Request, res: Response) => {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        name: user.firstname,
         role: user.role,
         DOB: user.DOB,
         gender: user.gender,
-        address: user.address,
+        address: user.street,
         photo: user.photo,
         nationality: user.nationality,
         country: user.country,
