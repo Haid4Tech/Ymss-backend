@@ -90,20 +90,20 @@ export const getAttendanceBySubject = async (req: Request, res: Response) => {
   const records = await prisma.subjectAttendance.findMany({
     where: { enrollment: { subjectId } },
     include: {
-      enrollment: { 
-        include: { 
-          student: { 
-            include: { 
+      enrollment: {
+        include: {
+          student: {
+            include: {
               user: true,
               class: true,
-            } 
+            },
           },
           subject: {
             include: {
               class: true,
             },
           },
-        } 
+        },
       },
     },
   });
@@ -114,9 +114,9 @@ export const getAttendanceByStudent = async (req: Request, res: Response) => {
   const studentId = Number(req.params.studentId);
   const records = await prisma.subjectAttendance.findMany({
     where: { enrollment: { studentId } },
-    include: { 
-      enrollment: { 
-        include: { 
+    include: {
+      enrollment: {
+        include: {
           subject: {
             include: {
               class: true,
@@ -128,7 +128,7 @@ export const getAttendanceByStudent = async (req: Request, res: Response) => {
               class: true,
             },
           },
-        } 
+        },
       },
     },
   });
