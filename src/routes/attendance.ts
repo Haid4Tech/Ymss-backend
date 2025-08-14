@@ -1,18 +1,16 @@
 import { Router } from "express";
-import * as attendanceController from "../controllers/attendanceController";
 import * as subjectAttendanceController from "../controllers/subjectAttendanceController";
 import { authMiddleware } from "../middlewares/authMiddleware";
 
 const router = Router();
 
-// General attendance routes
-router.get("/", authMiddleware, attendanceController.getAllSubjectAttendance);
-router.get(
-  "/:studentId",
-  authMiddleware,
-  attendanceController.getSubjectAttendanceByStudent
-);
-router.post("/", authMiddleware, attendanceController.markSubjectAttendance);
+// Get all attendance records
+router.get("/", authMiddleware, subjectAttendanceController.getAllSubjectAttendance);
+
+// Class-based attendance routes
+router.get("/class/:classId/date/:date", authMiddleware, subjectAttendanceController.getAttendanceByClassAndDate);
+router.get("/class/:classId/summary", authMiddleware, subjectAttendanceController.getClassAttendanceSummary);
+router.post("/class", authMiddleware, subjectAttendanceController.takeClassAttendance);
 
 // Subject attendance specific routes
 router.get(
