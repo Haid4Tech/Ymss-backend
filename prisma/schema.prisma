@@ -11,9 +11,8 @@ model User {
   id            Int                @id @default(autoincrement())
   email         String             @unique
   password      String
-  name          String
+  firstname     String
   role          Role
-  phone         String?
   photo         String?
   createdAt     DateTime           @default(now())
   DOB           DateTime?
@@ -22,126 +21,149 @@ model User {
   country       String?
   religion      String?
   bloodGroup    String?
-  address       String?
-  medicalInfo   MedicalInfo?
+  state         String?
+  phone         String?
+  street        String?
+  zipcode       String?
+  city          String?
+  lastname      String?
   announcements Announcement[]
+  emergencyInfo EmergencyContacts?
   events        Event[]
+  medicalInfo   MedicalInfo?
   parent        Parent?
   student       Student?
   teacher       Teacher?
-  emergencyInfo EmergencyContacts?
 }
 
 model Student {
   id             Int              @id @default(autoincrement())
   userId         Int              @unique
   classId        Int
-  parentId       Int?
   admissionDate  DateTime         @default(now())
   previousSchool String?
   relationship   String
   records        AcademicRecord[]
-  attendance     Attendance[]
-  grades         Grade[]
+  enrollments    Enrollment[]
+  Grade          Grade[]
+  parents        ParentStudent[]
   class          Class            @relation(fields: [classId], references: [id])
-  parent         Parent?          @relation(fields: [parentId], references: [id])
-  user           User             @relation(fields: [userId], references: [id])
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Parent {
-  id       Int       @id @default(autoincrement())
-  userId   Int       @unique
-  user     User      @relation(fields: [userId], references: [id])
-  students Student[]
+  id       Int             @id @default(autoincrement())
+  userId   Int             @unique
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  students ParentStudent[]
+}
+
+model ParentStudent {
+  id        Int     @id @default(autoincrement())
+  parentId  Int
+  studentId Int
+  parent    Parent  @relation(fields: [parentId], references: [id])
+  student   Student @relation(fields: [studentId], references: [id])
+
+  @@unique([parentId, studentId])
 }
 
 model Teacher {
-  id                  Int       @id @default(autoincrement())
-  userId              Int       @unique
-  hireDate            DateTime  @default(now())
-  experience          String?
-  employmentType      String?
-  salary              Int?
+  id                  Int              @id @default(autoincrement())
+  userId              Int              @unique
   degree              String?
-  university          String?
+  employmentType      String?
+  experience          String?
   graduationYear      String?
-  previousInstitution String
-  subjects            Subject[]
-  user                User      @relation(fields: [userId], references: [id])
-  Exam                Exam[]
-  Class               Class[]
+  hireDate            DateTime         @default(now())
+  previousInstitution String?
+  salary              Int?
+  university          String?
+  classes             Class[]
+  exams               Exam[]
+  subjects            SubjectTeacher[]
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Class {
   id           Int       @id @default(autoincrement())
   name         String
-  capacity     String
-  roomNumber   String
-  description  String?
   academicYear String?
-  startDate    DateTime
-  endDate      DateTime
-  startTime    String?
-  endTime      String?
+  capacity     Int
   days         String[]
+  description  String?
+  endDate      DateTime
+  endTime      String?
+  roomNumber   String
+  startDate    DateTime
+  startTime    String?
+  teacherId    Int?
+  teacher      Teacher?  @relation(fields: [teacherId], references: [id])
   exams        Exam[]
   students     Student[]
   subjects     Subject[]
-  teacherId    Int
-  teacher      Teacher   @relation(fields: [teacherId], references: [id])
 }
 
 model Subject {
-  id          Int      @id @default(autoincrement())
+  id          Int              @id @default(autoincrement())
   name        String
-  description String
+  classId     Int
   category    String?
+  description String
   weeklyHours Int?
-  gradeId     Int?
-  classId     Int?
-  teacherId   Int?
+  enrollments Enrollment[]
   exams       Exam[]
-  class       Class?   @relation(fields: [classId], references: [id])
-  teacher     Teacher? @relation(fields: [teacherId], references: [id])
+  class       Class            @relation(fields: [classId], references: [id])
+  teachers    SubjectTeacher[]
+}
+
+model SubjectTeacher {
+  id        Int     @id @default(autoincrement())
+  subjectId Int
+  teacherId Int
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  teacher   Teacher @relation(fields: [teacherId], references: [id])
+
+  @@unique([subjectId, teacherId])
+}
+
+model Enrollment {
+  id         Int                 @id @default(autoincrement())
+  studentId  Int
+  subjectId  Int
+  enrolledAt DateTime            @default(now())
+  student    Student             @relation(fields: [studentId], references: [id])
+  subject    Subject             @relation(fields: [subjectId], references: [id])
+  attendance SubjectAttendance[]
+
+  @@unique([studentId, subjectId])
+}
+
+model SubjectAttendance {
+  id           Int              @id @default(autoincrement())
+  enrollmentId Int
+  date         DateTime
+  status       AttendanceStatus
+  enrollment   Enrollment       @relation(fields: [enrollmentId], references: [id])
+
+  @@unique([enrollmentId, date])
 }
 
 model Exam {
   id        Int      @id @default(autoincrement())
   title     String
   date      DateTime
-  startTime String
-  examType  String
-  duration  Int?
   classId   Int
   subjectId Int
-  teacherId Int
   createdAt DateTime @default(now())
+  duration  Int?
+  examType  String
+  startTime String
+  teacherId Int
   class     Class    @relation(fields: [classId], references: [id])
   subject   Subject  @relation(fields: [subjectId], references: [id])
-  teacher   Teacher? @relation(fields: [teacherId], references: [id])
+  teacher   Teacher  @relation(fields: [teacherId], references: [id])
   grades    Grade[]
-}
-
-model Event {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  date        DateTime
-  startTime   String
-  endTime     String
-  category    String
-  color       String
-  createdAt   DateTime @default(now())
-  createdById Int
-  createdBy   User     @relation(fields: [createdById], references: [id])
-}
-
-model Attendance {
-  id        Int      @id @default(autoincrement())
-  studentId Int
-  date      DateTime
-  present   Boolean
-  student   Student  @relation(fields: [studentId], references: [id])
 }
 
 model Grade {
@@ -164,38 +186,56 @@ model AcademicRecord {
 }
 
 model Announcement {
-  id          Int       @id @default(autoincrement())
-  title       String
-  content     String
-  priority    String?
-  category    String
-  publishDate DateTime  @default(now())
-  expiryDate  DateTime?
-  attachment  String?
-  createdAt   DateTime  @default(now())
-  authorId    Int
-  author      User      @relation(fields: [authorId], references: [id])
+  id                Int       @id @default(autoincrement())
+  title             String
+  content           String
+  createdAt         DateTime  @default(now())
+  authorId          Int
+  attachments       String[]
+  category          String
+  emailNotification Boolean   @default(false)
+  expiryDate        DateTime?
+  isPublished       Boolean   @default(true)
+  priority          String?
+  publishDate       DateTime  @default(now())
+  sendNotification  Boolean   @default(true)
+  smsNotification   Boolean   @default(false)
+  targetAudience    String?
+  author            User      @relation(fields: [authorId], references: [id])
 }
 
 model MedicalInfo {
-  id     Int  @id @default(autoincrement())
-  userId Int  @unique
-  user   User @relation(fields: [userId], references: [id])
-
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
   conditions  String?
   allergies   String?
   medications String?
   doctorName  String?
   doctorPhone String?
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model EmergencyContacts {
   id       Int    @id @default(autoincrement())
   userId   Int    @unique
-  user     User   @relation(fields: [userId], references: [id])
   name     String
   phone    String
   relation String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  date        DateTime
+  startTime   String
+  endTime     String
+  category    String
+  color       String
+  createdAt   DateTime @default(now())
+  createdById Int
+  createdBy   User     @relation(fields: [createdById], references: [id])
 }
 
 enum Role {
@@ -215,4 +255,11 @@ enum Gender {
   MALE
   FEMALE
   OTHER
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
 }

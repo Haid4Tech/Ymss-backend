@@ -10,7 +10,8 @@ export const register = async (req: Request, res: Response) => {
   const {
     email,
     password,
-    name,
+    firstname,
+    lastname,
     role,
     DOB,
     gender,
@@ -23,7 +24,7 @@ export const register = async (req: Request, res: Response) => {
   } = req.body;
 
   // Validate required fields
-  if (!email || !password || !name || !role) {
+  if (!email || !password || !firstname || !lastname || !role) {
     return res
       .status(400)
       .json({ error: "Email, password, name, and role are required" });
@@ -52,7 +53,8 @@ export const register = async (req: Request, res: Response) => {
     const userData: any = {
       email,
       password: hashed,
-      name,
+      firstname,
+      lastname,
       role,
     };
 
@@ -77,11 +79,15 @@ export const register = async (req: Request, res: Response) => {
       user: {
         id: user.id,
         email: user.email,
-        name: user.firstname,
+        firstname: user.firstname,
+        lastname: user.lastname,
         role: user.role,
         DOB: user.DOB,
         gender: user.gender,
-        address: user.street,
+        street: user.street,
+        state: user.state,
+        city: user.city,
+        zipcode: user.zipcode,
         photo: user.photo,
         nationality: user.nationality,
         country: user.country,

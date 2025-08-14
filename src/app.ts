@@ -17,6 +17,8 @@ import recordRoutes from "./routes/records";
 import examRoutes from "./routes/exams";
 import eventRoutes from "./routes/events";
 import medicalInfoRoutes from "./routes/medicalInfo";
+import enrollmentRoutes from "./routes/enrollment";
+import subjectTeacherRoutes from "./routes/subjectTeacher";
 
 dotenv.config();
 
@@ -40,5 +42,7 @@ app.use("/records", recordRoutes);
 app.use("/exams", examRoutes);
 app.use("/events", eventRoutes);
 app.use("/medical-info", medicalInfoRoutes);
+app.use("/enrollments", enrollmentRoutes);
+app.use("/subject-teachers", subjectTeacherRoutes);
 
 export default app;

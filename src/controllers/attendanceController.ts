@@ -1,22 +1,44 @@
 import { Request, Response } from 'express';
 import { prisma } from '../app';
 
-export const getAllAttendance = async (req: Request, res: Response) => {
-  const attendance = await prisma.attendance.findMany({ include: { student: true } });
-  res.json(attendance);
-};
-
-export const getAttendanceByStudent = async (req: Request, res: Response) => {
-  const attendance = await prisma.attendance.findMany({
-    where: { studentId: Number(req.params.studentId) }
+// Get all subject attendance records (with student and subject info)
+export const getAllSubjectAttendance = async (req: Request, res: Response) => {
+  const attendance = await prisma.subjectAttendance.findMany({
+    include: {
+      enrollment: {
+        include: {
+          student: { include: { user: true } },
+          subject: true,
+        },
+      },
+    },
   });
   res.json(attendance);
 };
 
-export const markAttendance = async (req: Request, res: Response) => {
-  const { studentId, date, present } = req.body;
-  const attendance = await prisma.attendance.create({
-    data: { studentId, date: new Date(date), present }
+// Get subject attendance records for a specific student
+export const getSubjectAttendanceByStudent = async (req: Request, res: Response) => {
+  const studentId = Number(req.params.studentId);
+  const attendance = await prisma.subjectAttendance.findMany({
+    where: {
+      enrollment: { studentId },
+    },
+    include: {
+      enrollment: {
+        include: {
+          subject: true,
+        },
+      },
+    },
+  });
+  res.json(attendance);
+};
+
+// Mark attendance for a student in a subject (by enrollment)
+export const markSubjectAttendance = async (req: Request, res: Response) => {
+  const { enrollmentId, date, status } = req.body;
+  const attendance = await prisma.subjectAttendance.create({
+    data: { enrollmentId, date: new Date(date), status },
   });
   res.status(201).json(attendance);
 };

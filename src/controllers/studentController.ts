@@ -3,6 +3,11 @@ import bcrypt from "bcrypt";
 import { prisma } from "../app";
 import { exclude } from "../utils/helpers";
 
+/**
+ * Get All Students
+ * @param req
+ * @param res
+ */
 export const getAllStudents = async (req: Request, res: Response) => {
   // Parse pagination params, with defaults
   const page = parseInt(req.query.page as string) || 1;
@@ -21,23 +26,82 @@ export const getAllStudents = async (req: Request, res: Response) => {
         select: {
           id: true,
           email: true,
-          name: true,
+          firstname: true,
+          lastname: true,
           role: true,
           // Do NOT include password
         },
       },
       class: true,
-      parent: true,
+      enrollments: {
+        include: {
+          subject: true,
+          attendance: true,
+        },
+      },
+      parents: {
+        include: {
+          parent: {
+            include: { user: true },
+          },
+        },
+      },
     },
   });
 
   res.json({ students, page, limit, total });
 };
 
+/**
+ * Get Student By ID
+ * @param req
+ * @param res
+ * @returns
+ */
 export const getStudentById = async (req: Request, res: Response) => {
   const student = await prisma.student.findUnique({
     where: { id: Number(req.params.id) },
-    include: { user: true, class: true, parent: true },
+    include: {
+      user: {
+        select: {
+          id: true,
+          firstname: true,
+          lastname: true,
+          password: true,
+          email: true,
+          role: true,
+          DOB: true,
+          gender: true,
+          street: true,
+          state: true,
+          city: true,
+          zipcode: true,
+          phone: true,
+          photo: true,
+          nationality: true,
+          country: true,
+          religion: true,
+          bloodGroup: true,
+          createdAt: true,
+          medicalInfo: true,
+          emergencyInfo: true,
+        },
+      },
+      class: true,
+      enrollments: {
+        include: {
+          subject: true,
+          attendance: true,
+        },
+      },
+      parents: {
+        include: {
+          parent: {
+            include: { user: true },
+          },
+        },
+      },
+    },
   });
 
   if (!student) return res.status(404).json({ error: "Student not found" });
@@ -47,16 +111,26 @@ export const getStudentById = async (req: Request, res: Response) => {
   res.json({ ...student, user: cleanUser });
 };
 
+/**
+ * Create Students
+ * @param req
+ * @param res
+ * @returns
+ */
 export const createStudent = async (req: Request, res: Response) => {
   try {
     const {
       // User data
-      name,
+      firstname,
+      lastname,
       email,
       password,
       DOB,
       gender,
-      address,
+      state,
+      city,
+      zipcode,
+      street,
       phone,
       nationality,
       country,
@@ -78,11 +152,13 @@ export const createStudent = async (req: Request, res: Response) => {
 
     // Basic required field validation
     if (
-      !name ||
+      !firstname ||
       !email ||
       !DOB ||
       !gender ||
-      !address ||
+      !street ||
+      !city ||
+      !state ||
       !classId ||
       !admissionDate
     ) {
@@ -122,14 +198,17 @@ export const createStudent = async (req: Request, res: Response) => {
       const hashedPassword = password
         ? await bcrypt.hash(password, 10)
         : await bcrypt.hash(
-            `${name.split(" ")[0].toLowerCase()}${new Date(DOB).getFullYear()}`,
+            `${firstname.split(" ")[0].toLowerCase()}${new Date(
+              DOB
+            ).getFullYear()}`,
             10
           );
 
       // Create parent user and record if parent details provided
       const parentUser = await tx.user.create({
         data: {
-          name: parentsInfo.parentName,
+          firstname: parentsInfo.parentfirstname,
+          lastname: parentsInfo.parentlastname,
           email: parentsInfo.parentEmail,
           phone: parentsInfo.parentPhone,
           password: hashedPassword,
@@ -147,13 +226,17 @@ export const createStudent = async (req: Request, res: Response) => {
       // Create student user
       const studentUser = await tx.user.create({
         data: {
-          name,
+          firstname,
+          lastname,
           email,
           password: hashedPassword,
           role: "STUDENT",
           DOB: new Date(DOB),
           gender: gender.toUpperCase(),
-          address,
+          street,
+          city,
+          zipcode,
+          state,
           phone,
           nationality,
           country,
@@ -168,7 +251,6 @@ export const createStudent = async (req: Request, res: Response) => {
         data: {
           userId: studentUser.id,
           classId: parseInt(classId),
-          parentId: parentRecord.id,
           admissionDate: new Date(admissionDate),
           previousSchool,
           relationship: parentsInfo.relationship,
@@ -177,12 +259,16 @@ export const createStudent = async (req: Request, res: Response) => {
           user: {
             select: {
               id: true,
-              name: true,
+              firstname: true,
+              lastname: true,
               email: true,
               role: true,
               DOB: true,
               gender: true,
-              address: true,
+              street: true,
+              city: true,
+              zipcode: true,
+              state: true,
               phone: true,
               photo: true,
               nationality: true,
@@ -195,9 +281,23 @@ export const createStudent = async (req: Request, res: Response) => {
             },
           },
           class: true,
-          parent: true,
+          parents: true,
         },
       });
+
+      // create parent - student relationship
+      if (studentRecord && parentRecord) {
+        await tx.parentStudent.create({
+          data: {
+            parentId: parentRecord.id,
+            studentId: studentRecord.id,
+          },
+          include: {
+            parent: true,
+            student: true,
+          },
+        });
+      }
 
       // Optional medical info
       if (
@@ -233,12 +333,39 @@ export const createStudent = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Update Student Record
+ * @param req
+ * @param res
+ * @returns
+ */
 export const updateStudent = async (req: Request, res: Response) => {
   try {
-    const { classId, parentId, admissionDate, previousSchool } = req.body;
-    const studentId = parseInt(req.params.id);
+    const {
+      classId,
+      parentId,
+      admissionDate,
+      previousSchool,
+      firstname,
+      lastname,
+      email,
+      password,
+      DOB,
+      gender,
+      state,
+      city,
+      zipcode,
+      street,
+      phone,
+      nationality,
+      country,
+      religion,
+      bloodGroup,
+      photo,
+      parentsInfo, // unused?
+    } = req.body;
 
-    // Verify student exists
+    const studentId = parseInt(req.params.id);
     const existingStudent = await prisma.student.findUnique({
       where: { id: studentId },
     });
@@ -277,7 +404,43 @@ export const updateStudent = async (req: Request, res: Response) => {
     if (previousSchool !== undefined)
       updateData.previousSchool = previousSchool;
 
-    const student = await prisma.student.update({
+    // Build dynamic user update
+    const userUpdateFields = {
+      firstname,
+      lastname,
+      email,
+      password,
+      DOB: DOB ? new Date(DOB) : undefined,
+      gender,
+      street,
+      city,
+      state,
+      zipcode,
+      phone,
+      nationality,
+      country,
+      religion,
+      bloodGroup,
+      photo,
+    };
+
+    const userUpdateData: Record<string, any> = {};
+    Object.entries(userUpdateFields).forEach(([key, value]) => {
+      if (value !== undefined) {
+        userUpdateData[key as keyof typeof userUpdateFields] = value;
+      }
+    });
+
+    // Update user
+    if (Object.keys(userUpdateData).length > 0) {
+      await prisma.user.update({
+        where: { id: existingStudent.userId },
+        data: userUpdateData,
+      });
+    }
+
+    // Update student
+    const updatedStudent = await prisma.student.update({
       where: { id: studentId },
       data: updateData,
       include: {
@@ -285,32 +448,88 @@ export const updateStudent = async (req: Request, res: Response) => {
           select: {
             id: true,
             email: true,
-            name: true,
+            firstname: true,
+            lastname: true,
             role: true,
             DOB: true,
             gender: true,
-            address: true,
+            street: true,
+            city: true,
+            state: true,
+            zipcode: true,
             photo: true,
             nationality: true,
             country: true,
             religion: true,
             bloodGroup: true,
             createdAt: true,
+            medicalInfo: true,
           },
         },
-        class: true,
-        parent: true,
+        // class: true,
+        parents: true,
       },
     });
 
-    res.json({ message: "Student updated successfully", student });
+    res.json({
+      message: "Student updated successfully",
+      student: updatedStudent,
+    });
   } catch (error) {
     console.error("Update student error:", error);
     res.status(500).json({ error: "Failed to update student" });
   }
 };
 
+/**
+ * Delete Student Record
+ * @param req
+ * @param res
+ */
 export const deleteStudent = async (req: Request, res: Response) => {
   await prisma.student.delete({ where: { id: Number(req.params.id) } });
   res.status(204).send();
+};
+
+/**
+ * Get Students By Class ID
+ * @param req
+ * @param res
+ * @returns
+ */
+export const getStudentByClassId = async (req: Request, res: Response) => {
+  const classId = Number(req.params.classId);
+
+  if (isNaN(classId)) {
+    return res.status(400).json({ error: "Invalid class ID" });
+  }
+
+  try {
+    const students = await prisma.student.findMany({
+      where: { classId: Number(classId) },
+      include: {
+        class: true,
+        user: {
+          select: {
+            firstname: true,
+            lastname: true,
+          },
+        },
+        enrollments: {
+          include: {
+            subject: true,
+            attendance: true,
+          },
+        },
+      },
+    });
+
+    if (students.length == 0)
+      return res.status(404).json({ error: "Students not found" });
+
+    return res.status(200).json(students);
+  } catch (error) {
+    console.error("Error fetching Students:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 };
