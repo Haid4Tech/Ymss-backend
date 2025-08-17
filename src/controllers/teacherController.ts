@@ -64,6 +64,7 @@ export const createTeacher = async (req: Request, res: Response) => {
 
   const parsedHireDate = new Date(hireDate).toISOString();
   const parsedDOB = new Date(DOB).toISOString();
+  const formattedSalary = parseInt(salary);
 
   const result = await prisma.$transaction(async (tsx: any) => {
     // hash password
@@ -91,7 +92,7 @@ export const createTeacher = async (req: Request, res: Response) => {
         previousInstitution,
         experience,
         employmentType,
-        salary,
+        salary: formattedSalary,
         degree: degree || null,
         university: university || null,
         graduationYear: graduationYear || null,
