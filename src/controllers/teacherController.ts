@@ -46,7 +46,8 @@ export const getTeacherById = async (req: Request, res: Response) => {
 
 export const createTeacher = async (req: Request, res: Response) => {
   const {
-    name,
+    firstname,
+    lastname,
     email,
     DOB,
     password,
@@ -68,15 +69,13 @@ export const createTeacher = async (req: Request, res: Response) => {
     // hash password
     const hashedPassword = password
       ? await bcrypt.hash(password, 10)
-      : await bcrypt.hash(
-          `${name.split(" ")[0].toLowerCase()}${new Date(DOB).getFullYear()}`,
-          10
-        );
+      : await bcrypt.hash(`teacherpass`, 10);
 
     // Create the user first
     const user = await tsx.user.create({
       data: {
-        name,
+        firstname,
+        lastname,
         email,
         DOB: parsedDOB,
         password: hashedPassword,
