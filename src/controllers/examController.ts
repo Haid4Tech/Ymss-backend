@@ -4,7 +4,9 @@ import { getRoleBasedWhere } from "../utils/roleDataFilter";
 import { checkStudentAccess } from "../utils/helpers";
 
 export const getAllExams = async (req: Request, res: Response) => {
-  const exams = await prisma.exam.findMany();
+  const exams = await prisma.exam.findMany({
+    include: { class: true, subject: true },
+  });
   res.json(exams);
 };
 
