@@ -29,7 +29,7 @@ export const getAllStudents = async (req: Request, res: Response) => {
           firstname: true,
           lastname: true,
           role: true,
-          // Do NOT include password
+          photo: true,
         },
       },
       class: true,
