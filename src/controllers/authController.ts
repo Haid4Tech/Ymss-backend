@@ -157,7 +157,8 @@ export const updateProfile = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const {
-      name,
+      firstname,
+      lastname,
       email,
       DOB,
       gender,
@@ -185,7 +186,8 @@ export const updateProfile = async (req: Request, res: Response) => {
 
     // Prepare update data
     const updateData: any = {};
-    if (name) updateData.name = name;
+    if (firstname) updateData.firstname = firstname;
+    if (lastname) updateData.lastname = lastname;
     if (email) updateData.email = email;
     if (DOB) updateData.DOB = new Date(DOB);
     if (gender) updateData.gender = gender;
