@@ -45,3 +45,24 @@ export const adminMiddleware = (
     res.status(401).json({ error: "Invalid token" });
   }
 };
+
+export const teacherOrAdminMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const auth = req.headers.authorization;
+  if (!auth) return res.status(401).json({ error: "No token" });
+  const token = auth.split(" ")[1];
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as any;
+    if (payload.role !== "ADMIN" && payload.role !== "TEACHER") {
+      return res.status(403).json({ error: "Forbidden: Teachers or Admins only" });
+    }
+    (req as any).userId = payload.userId;
+    (req as any).role = payload.role;
+    next();
+  } catch {
+    res.status(401).json({ error: "Invalid token" });
+  }
+};

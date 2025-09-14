@@ -1,24 +1,79 @@
 import { Request, Response } from "express";
 import { prisma } from "../app";
+import { checkTeacherClassAccess } from "../utils/helpers";
 
 export const getAllClasses = async (req: Request, res: Response) => {
-  const classes = await prisma.class.findMany({
-    include: {
-      students: true,
-      subjects: true,
-      teacher: {
-        include: {
-          user: { select: { firstname: true, lastname: true, email: true } },
+  const userId = (req as any).userId;
+  const role = (req as any).role;
+
+  // If user is admin, return all classes
+  if (role === "ADMIN") {
+    const classes = await prisma.class.findMany({
+      include: {
+        students: true,
+        subjects: true,
+        teacher: {
+          include: {
+            user: { select: { firstname: true, lastname: true, email: true } },
+          },
         },
       },
-    },
-  });
-  res.json(classes);
+    });
+    return res.json(classes);
+  }
+
+  // If user is teacher, only return classes they have access to
+  if (role === "TEACHER") {
+    const classes = await prisma.class.findMany({
+      where: {
+        OR: [
+          // Direct assignment as class teacher
+          {
+            teacher: {
+              userId: userId,
+            },
+          },
+          // Teaching subjects in this class
+          {
+            subjects: {
+              some: {
+                teachers: {
+                  some: {
+                    teacher: {
+                      userId: userId,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        students: true,
+        subjects: true,
+        teacher: {
+          include: {
+            user: { select: { firstname: true, lastname: true, email: true } },
+          },
+        },
+      },
+    });
+    return res.json(classes);
+  }
+
+  // For other roles, return empty array
+  return res.json([]);
 };
 
 export const getClassById = async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+  const role = (req as any).role;
+  const classId = Number(req.params.id);
+
+  // Check if class exists
   const classObj = await prisma.class.findUnique({
-    where: { id: Number(req.params.id) },
+    where: { id: classId },
     include: {
       students: {
         include: {
@@ -28,8 +83,31 @@ export const getClassById = async (req: Request, res: Response) => {
       subjects: true,
     },
   });
-  if (!classObj) return res.status(404).json({ error: "Class not found" });
-  res.json(classObj);
+
+  if (!classObj) {
+    return res.status(404).json({ error: "Class not found" });
+  }
+
+  // If user is admin, return the class
+  if (role === "ADMIN") {
+    return res.json(classObj);
+  }
+
+  // If user is teacher, check if they have access to this class
+  if (role === "TEACHER") {
+    const hasAccess = await checkTeacherClassAccess(userId, classId);
+    if (!hasAccess) {
+      return res.status(403).json({ 
+        error: "Forbidden: You don't have access to this class" 
+      });
+    }
+    return res.json(classObj);
+  }
+
+  // For other roles, deny access
+  return res.status(403).json({ 
+    error: "Forbidden: You don't have access to this class" 
+  });
 };
 
 export const createClass = async (req: Request, res: Response) => {
@@ -73,15 +151,35 @@ export const createClass = async (req: Request, res: Response) => {
 };
 
 export const updateClass = async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+  const role = (req as any).role;
+  const classId = Number(req.params.id);
+
+  // Only admins can update classes
+  if (role !== "ADMIN") {
+    return res.status(403).json({ 
+      error: "Forbidden: Only admins can update classes" 
+    });
+  }
+
   const { name, teacherId } = req.body;
   const classObj = await prisma.class.update({
-    where: { id: Number(req.params.id) },
+    where: { id: classId },
     data: { name },
   });
   res.json(classObj);
 };
 
 export const deleteClass = async (req: Request, res: Response) => {
+  const role = (req as any).role;
+
+  // Only admins can delete classes
+  if (role !== "ADMIN") {
+    return res.status(403).json({ 
+      error: "Forbidden: Only admins can delete classes" 
+    });
+  }
+
   await prisma.class.delete({ where: { id: Number(req.params.id) } });
   res.status(204).send();
 };

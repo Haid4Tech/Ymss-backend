@@ -499,12 +499,29 @@ export const deleteStudent = async (req: Request, res: Response) => {
  */
 export const getStudentByClassId = async (req: Request, res: Response) => {
   const classId = Number(req.params.classId);
+  const userId = (req as any).userId;
+  const role = (req as any).role;
 
   if (isNaN(classId)) {
     return res.status(400).json({ error: "Invalid class ID" });
   }
 
   try {
+    // Check if user has access to this class
+    if (role === "TEACHER") {
+      const { checkTeacherClassAccess } = await import("../utils/helpers");
+      const hasAccess = await checkTeacherClassAccess(userId, classId);
+      if (!hasAccess) {
+        return res.status(403).json({ 
+          error: "Forbidden: You don't have access to this class" 
+        });
+      }
+    } else if (role !== "ADMIN") {
+      return res.status(403).json({ 
+        error: "Forbidden: You don't have access to this class" 
+      });
+    }
+
     const students = await prisma.student.findMany({
       where: { classId: Number(classId) },
       include: {
