@@ -1,37 +1,35 @@
 import { Router } from "express";
-import * as subjectAttendanceController from "../controllers/subjectAttendanceController";
+import * as attendanceController from "../controllers/attendanceController";
 import { authMiddleware } from "../middlewares/authMiddleware";
 
 const router = Router();
 
-// Get all attendance records
-router.get("/", authMiddleware, subjectAttendanceController.getAllSubjectAttendance);
-
 // Class-based attendance routes
-router.get("/class/:classId/date/:date", authMiddleware, subjectAttendanceController.getAttendanceByClassAndDate);
-router.get("/class/:classId/summary", authMiddleware, subjectAttendanceController.getClassAttendanceSummary);
-router.post("/class", authMiddleware, subjectAttendanceController.takeClassAttendance);
-
-// Subject attendance specific routes
+router.get("/", authMiddleware, attendanceController.getAllAttendance);
 router.get(
-  "/subject/enrollment/:enrollmentId",
+  "/teacher/classes",
   authMiddleware,
-  subjectAttendanceController.getAttendanceByEnrollment
+  attendanceController.getTeacherClasses
 );
+router.get("/:id", authMiddleware, attendanceController.getAttendanceById);
 router.get(
-  "/subject/:subjectId",
+  "/class/:classId",
   authMiddleware,
-  subjectAttendanceController.getAttendanceBySubject
+  attendanceController.getAttendanceByClass
 );
 router.get(
-  "/student/:studentId",
+  "/class/:classId/date/:date",
   authMiddleware,
-  subjectAttendanceController.getAttendanceByStudent
+  attendanceController.getAttendanceByClassAndDate
 );
-router.post(
-  "/subject",
+router.post("/", authMiddleware, attendanceController.createAttendance);
+router.post("/bulk", authMiddleware, attendanceController.createBulkAttendance);
+router.put("/:id", authMiddleware, attendanceController.updateAttendanceById);
+router.put(
+  "/class/:classId/date/:date",
   authMiddleware,
-  subjectAttendanceController.markSubjectAttendance
+  attendanceController.updateAttendanceByClassAndDate
 );
+router.delete("/:id", authMiddleware, attendanceController.deleteAttendance);
 
 export default router;

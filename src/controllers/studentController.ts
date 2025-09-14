@@ -524,9 +524,7 @@ export const getStudentByClassId = async (req: Request, res: Response) => {
       },
     });
 
-    if (students.length == 0)
-      return res.status(404).json({ error: "Students not found" });
-
+    // Return empty array if no students found instead of 404
     return res.status(200).json(students);
   } catch (error) {
     console.error("Error fetching Students:", error);

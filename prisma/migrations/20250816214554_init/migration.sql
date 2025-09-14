@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "public"."Role" AS ENUM ('STUDENT', 'PARENT', 'TEACHER', 'ADMIN');
 
@@ -108,6 +111,18 @@ CREATE TABLE "public"."Subject" (
     "weeklyHours" INTEGER,
 
     CONSTRAINT "Subject_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Attendance" (
+    "id" SERIAL NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL,
+    "records" JSONB NOT NULL,
+    "classId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Attendance_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -254,6 +269,9 @@ CREATE UNIQUE INDEX "ParentStudent_parentId_studentId_key" ON "public"."ParentSt
 CREATE UNIQUE INDEX "Teacher_userId_key" ON "public"."Teacher"("userId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Attendance_classId_date_key" ON "public"."Attendance"("classId", "date");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "SubjectTeacher_subjectId_teacherId_key" ON "public"."SubjectTeacher"("subjectId", "teacherId");
 
 -- CreateIndex
@@ -291,6 +309,9 @@ ALTER TABLE "public"."Class" ADD CONSTRAINT "Class_teacherId_fkey" FOREIGN KEY (
 
 -- AddForeignKey
 ALTER TABLE "public"."Subject" ADD CONSTRAINT "Subject_classId_fkey" FOREIGN KEY ("classId") REFERENCES "public"."Class"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Attendance" ADD CONSTRAINT "Attendance_classId_fkey" FOREIGN KEY ("classId") REFERENCES "public"."Class"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."SubjectTeacher" ADD CONSTRAINT "SubjectTeacher_subjectId_fkey" FOREIGN KEY ("subjectId") REFERENCES "public"."Subject"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -336,3 +357,4 @@ ALTER TABLE "public"."EmergencyContacts" ADD CONSTRAINT "EmergencyContacts_userI
 
 -- AddForeignKey
 ALTER TABLE "public"."Event" ADD CONSTRAINT "Event_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+

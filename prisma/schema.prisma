@@ -86,7 +86,7 @@ model Teacher {
 }
 
 model Class {
-  id           Int       @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
   name         String
   academicYear String?
   capacity     Int
@@ -98,10 +98,11 @@ model Class {
   startDate    DateTime
   startTime    String?
   teacherId    Int?
-  teacher      Teacher?  @relation(fields: [teacherId], references: [id])
+  teacher      Teacher?    @relation(fields: [teacherId], references: [id])
   exams        Exam[]
   students     Student[]
   subjects     Subject[]
+  attendance   Attendance[]
 }
 
 model Subject {
@@ -115,6 +116,18 @@ model Subject {
   exams       Exam[]
   class       Class            @relation(fields: [classId], references: [id])
   teachers    SubjectTeacher[]
+}
+
+model Attendance {
+  id        Int      @id
+  date      DateTime
+  records   Json
+  classId   Int
+  class     Class    @relation(fields: [classId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@unique([classId, date])
 }
 
 model SubjectTeacher {
