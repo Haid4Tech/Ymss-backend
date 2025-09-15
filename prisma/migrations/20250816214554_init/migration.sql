@@ -115,7 +115,7 @@ CREATE TABLE "public"."Subject" (
 
 -- CreateTable
 CREATE TABLE "public"."Attendance" (
-    "id" SERIAL NOT NULL,
+    "id" INTEGER NOT NULL,
     "date" TIMESTAMP(3) NOT NULL,
     "records" JSONB NOT NULL,
     "classId" INTEGER NOT NULL,
