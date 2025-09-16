@@ -1,6 +1,3 @@
--- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
-
 -- CreateEnum
 CREATE TYPE "public"."Role" AS ENUM ('STUDENT', 'PARENT', 'TEACHER', 'ADMIN');
 
@@ -357,4 +354,3 @@ ALTER TABLE "public"."EmergencyContacts" ADD CONSTRAINT "EmergencyContacts_userI
 
 -- AddForeignKey
 ALTER TABLE "public"."Event" ADD CONSTRAINT "Event_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
