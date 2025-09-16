@@ -97,6 +97,7 @@ export const register = async (req: Request, res: Response) => {
       },
       token: token,
     });
+    console.log("User created BE");
   } catch (e) {
     const errorMessage = extractErrorMessage(e);
 
