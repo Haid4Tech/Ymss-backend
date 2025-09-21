@@ -45,7 +45,7 @@ model Student {
   relationship   String
   records        AcademicRecord[]
   enrollments    Enrollment[]
-  Grade          Grade[]
+  grades         Grade[]
   parents        ParentStudent[]
   class          Class            @relation(fields: [classId], references: [id])
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -103,6 +103,7 @@ model Class {
   students     Student[]
   subjects     Subject[]
   attendance   Attendance[]
+  grades       Grade[]
 }
 
 model Subject {
@@ -114,6 +115,7 @@ model Subject {
   weeklyHours Int?
   enrollments Enrollment[]
   exams       Exam[]
+  grades      Grade[]
   class       Class            @relation(fields: [classId], references: [id])
   teachers    SubjectTeacher[]
 }
@@ -180,14 +182,37 @@ model Exam {
 }
 
 model Grade {
-  id        Int      @id @default(autoincrement())
-  studentId Int
-  examId    Int
-  value     Float
-  date      DateTime
-  exam      Exam     @relation(fields: [examId], references: [id])
-  student   Student  @relation(fields: [studentId], references: [id])
+  id                Int      @id @default(autoincrement())
+  studentId         Int
+  examId            Int?
+  subjectId         Int
+  classId           Int
+  academicYear      String
+  term              Term
+  ca1               Float?   // First Continuous Assessment
+  ca2               Float?   // Second Continuous Assessment
+  caTotal           Float?   // Total of CA1 + CA2
+  examScore         Float?   // Exam score
+  totalScore        Float?   // Total of CA + Exam
+  ltc               Float?   // Long Term Continuous Assessment
+  overallScore      Float?   // Overall score (total + ltc) / 2
+  classAverage      Float?   // Class average for this subject
+  grade             String?  // Letter grade (A, B, C, D, F)
+  subjectPosition   Int?     // Position in class for this subject
+  remark            String?  // Teacher's remark
+  value             Float?   // Legacy field for simple grades
+  date              DateTime @default(now())
+  createdAt         DateTime @default(now())   
+  updatedAt         DateTime @updatedAt
+  
+  exam              Exam?    @relation(fields: [examId], references: [id])
+  student           Student  @relation(fields: [studentId], references: [id])
+  subject           Subject  @relation(fields: [subjectId], references: [id])
+  class             Class    @relation(fields: [classId], references: [id])
+  
+  @@unique([studentId, subjectId, academicYear, term])
 }
+
 
 model AcademicRecord {
   id        Int     @id @default(autoincrement())
