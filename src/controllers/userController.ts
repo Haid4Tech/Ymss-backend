@@ -7,6 +7,13 @@ export const getAllUsers = async (req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
       include: {
+        teacher: true,
+        student: {
+          select: {
+            class: true,
+          },
+        },
+        parent: true,
         medicalInfo: true,
         emergencyInfo: true,
       },
@@ -41,6 +48,14 @@ export const getUserById = async (req: Request, res: Response) => {
     const user = await prisma.user.findUnique({
       where: { id: parseInt(id) },
       include: {
+        teacher: true,
+        student: {
+          select: {
+            id: true,
+            class: true,
+          },
+        },
+        parent: true,
         medicalInfo: true,
         emergencyInfo: true,
       },

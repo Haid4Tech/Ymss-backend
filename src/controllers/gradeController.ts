@@ -45,11 +45,11 @@ const calculateGradeFields = (
     else grade = "F";
   }
 
-  return { 
-    caTotal: caTotal > 0 ? caTotal : null, 
-    totalScore: totalScore > 0 ? totalScore : null, 
-    overallScore: overallScore > 0 ? overallScore : null, 
-    grade 
+  return {
+    caTotal: caTotal > 0 ? caTotal : null,
+    totalScore: totalScore > 0 ? totalScore : null,
+    overallScore: overallScore > 0 ? overallScore : null,
+    grade,
   };
 };
 
@@ -83,14 +83,19 @@ const calculateClassStats = async (
     (a, b) => (b.overallScore || 0) - (a.overallScore || 0)
   );
 
-  for (let i = 0; i < sortedResults.length; i++) {
-    await prisma.grade.update({
-      where: { id: sortedResults[i].id },
-      data: {
-        classAverage,
-        subjectPosition: i + 1,
-      },
-    });
+  // Use a single transaction to update all positions at once
+  if (sortedResults.length > 0) {
+    await prisma.$transaction(
+      sortedResults.map((result, index) =>
+        prisma.grade.update({
+          where: { id: result.id },
+          data: {
+            classAverage,
+            subjectPosition: index + 1,
+          },
+        })
+      )
+    );
   }
 
   return { classAverage, validScores };
@@ -275,17 +280,17 @@ export const assignGrade = async (req: Request, res: Response) => {
 export const updateGrade = async (req: Request, res: Response) => {
   try {
     const gradeId = Number(req.params.id);
-    const { 
-      value, 
-      date, 
-      ca1, 
-      ca2, 
-      examScore, 
-      ltc, 
-      overallScore, 
-      grade, 
+    const {
+      value,
+      date,
+      ca1,
+      ca2,
+      examScore,
+      ltc,
+      overallScore,
+      grade,
       subjectPosition,
-      remark 
+      remark,
     } = req.body;
     const userId = (req as any).userId;
     const role = (req as any).role;
@@ -320,18 +325,29 @@ export const updateGrade = async (req: Request, res: Response) => {
 
     // Calculate derived fields if comprehensive data is provided
     let calculatedFields = {};
-    if (ca1 !== undefined || ca2 !== undefined || examScore !== undefined || ltc !== undefined) {
-      const { caTotal, totalScore, overallScore: calcOverallScore, grade: calcGrade } = calculateGradeFields(
+    if (
+      ca1 !== undefined ||
+      ca2 !== undefined ||
+      examScore !== undefined ||
+      ltc !== undefined
+    ) {
+      const {
+        caTotal,
+        totalScore,
+        overallScore: calcOverallScore,
+        grade: calcGrade,
+      } = calculateGradeFields(
         ca1 !== undefined ? ca1 : existingGrade.ca1,
         ca2 !== undefined ? ca2 : existingGrade.ca2,
         examScore !== undefined ? examScore : existingGrade.examScore,
         ltc !== undefined ? ltc : existingGrade.ltc
       );
-      
+
       calculatedFields = {
         caTotal,
         totalScore,
-        overallScore: overallScore !== undefined ? overallScore : calcOverallScore,
+        overallScore:
+          overallScore !== undefined ? overallScore : calcOverallScore,
         grade: grade !== undefined ? grade : calcGrade,
       };
     }
@@ -345,11 +361,18 @@ export const updateGrade = async (req: Request, res: Response) => {
         // Comprehensive fields
         ca1: ca1 !== undefined ? ca1 : existingGrade.ca1,
         ca2: ca2 !== undefined ? ca2 : existingGrade.ca2,
-        examScore: examScore !== undefined ? examScore : existingGrade.examScore,
+        examScore:
+          examScore !== undefined ? examScore : existingGrade.examScore,
         ltc: ltc !== undefined ? ltc : existingGrade.ltc,
-        overallScore: overallScore !== undefined ? overallScore : existingGrade.overallScore,
+        overallScore:
+          overallScore !== undefined
+            ? overallScore
+            : existingGrade.overallScore,
         grade: grade !== undefined ? grade : existingGrade.grade,
-        subjectPosition: subjectPosition !== undefined ? subjectPosition : existingGrade.subjectPosition,
+        subjectPosition:
+          subjectPosition !== undefined
+            ? subjectPosition
+            : existingGrade.subjectPosition,
         remark: remark !== undefined ? remark : existingGrade.remark,
         // Calculated fields
         ...calculatedFields,
@@ -382,15 +405,104 @@ export const updateGrade = async (req: Request, res: Response) => {
   }
 };
 
+// ===== DEBUG FUNCTIONS =====
+
+export const debugStudent = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const role = (req as any).role;
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstname: true,
+        lastname: true,
+        role: true,
+      },
+    });
+
+    if (role === "STUDENT") {
+      // Check if student record exists
+      const student = await prisma.student.findFirst({
+        where: { userId },
+        include: {
+          class: { select: { name: true } },
+        },
+      });
+
+      return res.json({
+        user,
+        student,
+        message: "Debug info for student",
+      });
+    }
+
+    return res.json({
+      user,
+      message: "Debug info for non-student",
+    });
+  } catch (error: any) {
+    console.error("Debug error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // ===== COMPREHENSIVE RESULTS FUNCTIONS =====
 
 export const getAllResults = async (req: Request, res: Response) => {
   try {
+    const userId = (req as any).userId;
+    const role = (req as any).role;
+
+    let whereClause: any = {
+      academicYear: { not: undefined },
+      term: { not: undefined },
+    };
+
+    // Add role-based filtering
+    if (role === "STUDENT") {
+      // Students can only see their own results
+      const student = await prisma.student.findFirst({
+        where: { userId },
+        select: { id: true },
+      });
+      
+      if (!student) {
+        return res.status(403).json({
+          error: "Forbidden: Student record not found",
+        });
+      }
+      whereClause.studentId = student.id;
+    } else if (role === "PARENT") {
+      // Parents can only see their ward's results
+      const studentIds = await prisma.student.findMany({
+        where: {
+          parents: {
+            some: {
+              parent: { userId },
+            },
+          },
+        },
+        select: { id: true },
+      });
+
+      if (studentIds.length === 0) {
+        return res.status(403).json({
+          error: "Forbidden: No ward found",
+        });
+      }
+
+      whereClause.studentId = {
+        in: studentIds.map((s) => s.id),
+      };
+    }
+    // Admin and teachers can see all results
+
     const results = await prisma.grade.findMany({
-      where: {
-        academicYear: { not: undefined },
-        term: { not: undefined },
-      },
+      where: whereClause,
       include: {
         student: {
           include: {
@@ -402,8 +514,10 @@ export const getAllResults = async (req: Request, res: Response) => {
       },
       orderBy: { createdAt: "desc" },
     });
+    
     res.json(results);
   } catch (error: any) {
+    console.error("Error in getAllResults:", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -412,6 +526,41 @@ export const getResultsByStudent = async (req: Request, res: Response) => {
   try {
     const { studentId } = req.params;
     const { academicYear, term } = req.query;
+    const userId = (req as any).userId;
+    const role = (req as any).role;
+
+    // Check if user can access this student's results
+    if (role === "STUDENT") {
+      // Students can only access their own results
+      const student = await prisma.student.findFirst({
+        where: { userId },
+        select: { id: true },
+      });
+      if (!student || student.id !== Number(studentId)) {
+        return res.status(403).json({
+          error: "Forbidden: You can only access your own results",
+        });
+      }
+    } else if (role === "PARENT") {
+      // Parents can only access their ward's results
+      const student = await prisma.student.findFirst({
+        where: {
+          id: Number(studentId),
+          parents: {
+            some: {
+              parent: { userId },
+            },
+          },
+        },
+        select: { id: true },
+      });
+      if (!student) {
+        return res.status(403).json({
+          error: "Forbidden: You can only access your ward's results",
+        });
+      }
+    }
+    // Admin and teachers can access any student's results
 
     const whereClause: any = {
       studentId: Number(studentId),
@@ -425,6 +574,11 @@ export const getResultsByStudent = async (req: Request, res: Response) => {
     const results = await prisma.grade.findMany({
       where: whereClause,
       include: {
+        student: {
+          include: {
+            user: { select: { firstname: true, lastname: true, email: true } },
+          },
+        },
         subject: true,
         class: true,
       },
@@ -493,12 +647,53 @@ export const getResultsByClass = async (req: Request, res: Response) => {
   try {
     const { classId } = req.params;
     const { academicYear, term } = req.query;
+    const userId = (req as any).userId;
+    const role = (req as any).role;
 
-    const whereClause: any = {
+    let whereClause: any = {
       classId: Number(classId),
       academicYear: { not: null },
       term: { not: null },
     };
+
+    // Add role-based filtering
+    if (role === "STUDENT") {
+      // Students can only see their own results
+      const student = await prisma.student.findFirst({
+        where: { userId },
+        select: { id: true },
+      });
+      if (!student) {
+        return res.status(403).json({
+          error: "Forbidden: Student record not found",
+        });
+      }
+      whereClause.studentId = student.id;
+    } else if (role === "PARENT") {
+      // Parents can only see their ward's results
+      const studentIds = await prisma.student.findMany({
+        where: {
+          classId: Number(classId),
+          parents: {
+            some: {
+              parent: { userId },
+            },
+          },
+        },
+        select: { id: true },
+      });
+
+      if (studentIds.length === 0) {
+        return res.status(403).json({
+          error: "Forbidden: No ward found in this class",
+        });
+      }
+
+      whereClause.studentId = {
+        in: studentIds.map((s) => s.id),
+      };
+    }
+    // Admin and teachers can see all results in the class
 
     if (academicYear) whereClause.academicYear = academicYear;
     if (term) whereClause.term = term;
@@ -722,6 +917,41 @@ export const getStudentReportCard = async (req: Request, res: Response) => {
   try {
     const { studentId } = req.params;
     const { academicYear, term } = req.query;
+    const userId = (req as any).userId;
+    const role = (req as any).role;
+
+    // Check if user can access this student's report card
+    if (role === "STUDENT") {
+      // Students can only access their own report card
+      const student = await prisma.student.findFirst({
+        where: { userId },
+        select: { id: true },
+      });
+      if (!student || student.id !== Number(studentId)) {
+        return res.status(403).json({
+          error: "Forbidden: You can only access your own report card",
+        });
+      }
+    } else if (role === "PARENT") {
+      // Parents can only access their ward's report card
+      const student = await prisma.student.findFirst({
+        where: {
+          id: Number(studentId),
+          parents: {
+            some: {
+              parent: { userId },
+            },
+          },
+        },
+        select: { id: true },
+      });
+      if (!student) {
+        return res.status(403).json({
+          error: "Forbidden: You can only access your ward's report card",
+        });
+      }
+    }
+    // Admin and teachers can access any student's report card
 
     const whereClause: any = {
       studentId: Number(studentId),

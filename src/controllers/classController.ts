@@ -22,6 +22,76 @@ export const getAllClasses = async (req: Request, res: Response) => {
     return res.json(classes);
   }
 
+  // If user is student, return only their class
+  if (role === "STUDENT") {
+    const student = await prisma.student.findUnique({
+      where: { userId: userId },
+      select: { classId: true },
+    });
+
+    if (!student) {
+      return res.json([]);
+    }
+
+    const classes = await prisma.class.findMany({
+      where: {
+        id: student.classId,
+      },
+      include: {
+        students: true,
+        subjects: true,
+        teacher: {
+          include: {
+            user: { select: { firstname: true, lastname: true, email: true } },
+          },
+        },
+      },
+    });
+    return res.json(classes);
+  }
+
+  // If user is parent, return classes of their children
+  if (role === "PARENT") {
+    // First get the parent record
+    const parent = await prisma.parent.findUnique({
+      where: { userId: userId },
+      select: { id: true },
+    });
+
+    if (!parent) {
+      return res.json([]);
+    }
+
+    // Get all students of this parent
+    const parentStudents = await prisma.parentStudent.findMany({
+      where: { parentId: parent.id },
+      select: { student: { select: { classId: true } } },
+    });
+
+    if (parentStudents.length === 0) {
+      return res.json([]);
+    }
+
+    // Extract unique class IDs
+    const classIds = [...new Set(parentStudents.map(ps => ps.student.classId))];
+
+    const classes = await prisma.class.findMany({
+      where: {
+        id: { in: classIds },
+      },
+      include: {
+        students: true,
+        subjects: true,
+        teacher: {
+          include: {
+            user: { select: { firstname: true, lastname: true, email: true } },
+          },
+        },
+      },
+    });
+    return res.json(classes);
+  }
+
   // If user is teacher, only return classes they have access to
   if (role === "TEACHER") {
     const classes = await prisma.class.findMany({
@@ -97,16 +167,63 @@ export const getClassById = async (req: Request, res: Response) => {
   if (role === "TEACHER") {
     const hasAccess = await checkTeacherClassAccess(userId, classId);
     if (!hasAccess) {
-      return res.status(403).json({ 
-        error: "Forbidden: You don't have access to this class" 
+      return res.status(403).json({
+        error: "Forbidden: You don't have access to this class",
+      });
+    }
+    return res.json(classObj);
+  }
+
+  // If user is student, check if they belong to this class
+  if (role === "STUDENT") {
+    const student = await prisma.student.findUnique({
+      where: { userId: userId },
+      select: { classId: true },
+    });
+
+    if (!student || student.classId !== classId) {
+      return res.status(403).json({
+        error: "Forbidden: You don't have access to this class",
+      });
+    }
+    return res.json(classObj);
+  }
+
+  // If user is parent, check if any of their children belong to this class
+  if (role === "PARENT") {
+    // First get the parent record
+    const parent = await prisma.parent.findUnique({
+      where: { userId: userId },
+      select: { id: true },
+    });
+
+    if (!parent) {
+      return res.status(403).json({
+        error: "Forbidden: You don't have access to this class",
+      });
+    }
+
+    // Check if any of the parent's children are in this class
+    const parentStudentInClass = await prisma.parentStudent.findFirst({
+      where: {
+        parentId: parent.id,
+        student: {
+          classId: classId,
+        },
+      },
+    });
+
+    if (!parentStudentInClass) {
+      return res.status(403).json({
+        error: "Forbidden: You don't have access to this class",
       });
     }
     return res.json(classObj);
   }
 
   // For other roles, deny access
-  return res.status(403).json({ 
-    error: "Forbidden: You don't have access to this class" 
+  return res.status(403).json({
+    error: "Forbidden: You don't have access to this class",
   });
 };
 
@@ -157,8 +274,8 @@ export const updateClass = async (req: Request, res: Response) => {
 
   // Only admins can update classes
   if (role !== "ADMIN") {
-    return res.status(403).json({ 
-      error: "Forbidden: Only admins can update classes" 
+    return res.status(403).json({
+      error: "Forbidden: Only admins can update classes",
     });
   }
 
@@ -175,8 +292,8 @@ export const deleteClass = async (req: Request, res: Response) => {
 
   // Only admins can delete classes
   if (role !== "ADMIN") {
-    return res.status(403).json({ 
-      error: "Forbidden: Only admins can delete classes" 
+    return res.status(403).json({
+      error: "Forbidden: Only admins can delete classes",
     });
   }
 

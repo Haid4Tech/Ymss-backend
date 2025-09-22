@@ -41,4 +41,7 @@ router.post("/results/bulk", authMiddleware, gradeController.bulkCreateOrUpdateR
 // Delete result
 router.delete("/results/:id", authMiddleware, gradeController.deleteResult);
 
+// Debug route
+router.get("/debug/student", authMiddleware, gradeController.debugStudent);
+
 export default router;
