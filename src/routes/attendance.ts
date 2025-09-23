@@ -4,13 +4,8 @@ import { authMiddleware } from "../middlewares/authMiddleware";
 
 const router = Router();
 
-// Class-based attendance routes
+// Attendance routes
 router.get("/", authMiddleware, attendanceController.getAllAttendance);
-router.get(
-  "/teacher/classes",
-  authMiddleware,
-  attendanceController.getTeacherClasses
-);
 router.get("/:id", authMiddleware, attendanceController.getAttendanceById);
 router.get(
   "/class/:classId",
@@ -22,14 +17,30 @@ router.get(
   authMiddleware,
   attendanceController.getAttendanceByClassAndDate
 );
+router.get(
+  "/student/:studentId",
+  authMiddleware,
+  attendanceController.getAttendanceByStudent
+);
+router.get(
+  "/class/:classId/stats",
+  authMiddleware,
+  attendanceController.getAttendanceStats
+);
+router.get(
+  "/teacher/classes",
+  authMiddleware,
+  attendanceController.getTeacherClasses
+);
+
+// Create attendance
 router.post("/", authMiddleware, attendanceController.createAttendance);
 router.post("/bulk", authMiddleware, attendanceController.createBulkAttendance);
+
+// Update attendance
 router.put("/:id", authMiddleware, attendanceController.updateAttendanceById);
-router.put(
-  "/class/:classId/date/:date",
-  authMiddleware,
-  attendanceController.updateAttendanceByClassAndDate
-);
+
+// Delete attendance
 router.delete("/:id", authMiddleware, attendanceController.deleteAttendance);
 
 export default router;

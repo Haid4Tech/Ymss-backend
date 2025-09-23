@@ -47,6 +47,7 @@ model Student {
   enrollments    Enrollment[]
   grades         Grade[]
   parents        ParentStudent[]
+  attendance     Attendance[]
   class          Class            @relation(fields: [classId], references: [id])
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -82,6 +83,7 @@ model Teacher {
   classes             Class[]
   exams               Exam[]
   subjects            SubjectTeacher[]
+  attendance          Attendance[]
   user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -121,15 +123,22 @@ model Subject {
 }
 
 model Attendance {
-  id        Int      @id
+  id        Int      @id @default(autoincrement())
   date      DateTime
-  records   Json
-  classId   Int
-  class     Class    @relation(fields: [classId], references: [id])
+  status    AttendanceStatus   // PRESENT, ABSENT, LATE, EXCUSED
+  notes     String?  // Optional notes for the attendance
+  studentId Int
+  classId   Int  
+  markedBy  Int?     // Teacher ID who marked the attendance
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher   Teacher? @relation(fields: [markedBy], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
-  @@unique([classId, date])
+  @@unique([studentId, classId, date])
+  @@index([classId, date])
+  @@index([studentId, date])
 }
 
 model SubjectTeacher {

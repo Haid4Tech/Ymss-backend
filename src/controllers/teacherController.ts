@@ -22,6 +22,7 @@ export const getAllTeachers = async (req: Request, res: Response) => {
           firstname: true,
           lastname: true,
           role: true,
+          DOB: true,
           // Do NOT include password
         },
       },

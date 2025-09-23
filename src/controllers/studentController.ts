@@ -30,6 +30,7 @@ export const getAllStudents = async (req: Request, res: Response) => {
           lastname: true,
           role: true,
           photo: true,
+          DOB: true,
         },
       },
       class: true,
@@ -512,13 +513,13 @@ export const getStudentByClassId = async (req: Request, res: Response) => {
       const { checkTeacherClassAccess } = await import("../utils/helpers");
       const hasAccess = await checkTeacherClassAccess(userId, classId);
       if (!hasAccess) {
-        return res.status(403).json({ 
-          error: "Forbidden: You don't have access to this class" 
+        return res.status(403).json({
+          error: "Forbidden: You don't have access to this class",
         });
       }
     } else if (role !== "ADMIN") {
-      return res.status(403).json({ 
-        error: "Forbidden: You don't have access to this class" 
+      return res.status(403).json({
+        error: "Forbidden: You don't have access to this class",
       });
     }
 
