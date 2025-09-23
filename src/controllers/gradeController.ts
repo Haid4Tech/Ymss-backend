@@ -65,7 +65,7 @@ const calculateClassStats = async (
       classId,
       academicYear,
       // term,
-      overallScore: { not: null },
+      overallScore: { not: undefined },
     },
     select: { overallScore: true, id: true },
   });
@@ -564,8 +564,8 @@ export const getResultsByStudent = async (req: Request, res: Response) => {
 
     const whereClause: any = {
       studentId: Number(studentId),
-      academicYear: { not: null },
-      term: { not: null },
+      academicYear: { not: undefined },
+      term: { not: undefined },
     };
 
     if (academicYear) whereClause.academicYear = academicYear;
@@ -616,8 +616,8 @@ export const getResultsByClassAndSubject = async (
     const whereClause: any = {
       classId: Number(classId),
       subjectId: Number(subjectId),
-      academicYear: { not: null },
-      term: { not: null },
+      academicYear: { not: undefined },
+      term: { not: undefined },
     };
 
     if (academicYear) whereClause.academicYear = academicYear;
@@ -652,8 +652,8 @@ export const getResultsByClass = async (req: Request, res: Response) => {
 
     let whereClause: any = {
       classId: Number(classId),
-      academicYear: { not: null },
-      term: { not: null },
+      academicYear: { not: undefined },
+      term: { not: undefined },
     };
 
     // Add role-based filtering
@@ -955,8 +955,8 @@ export const getStudentReportCard = async (req: Request, res: Response) => {
 
     const whereClause: any = {
       studentId: Number(studentId),
-      academicYear: { not: null },
-      term: { not: null },
+      academicYear: { not: undefined },
+      term: { not: undefined },
     };
 
     if (academicYear) whereClause.academicYear = academicYear;
