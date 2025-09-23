@@ -2,45 +2,247 @@ import { Request, Response } from "express";
 import { prisma } from "../app";
 
 export const getAllSubjects = async (req: Request, res: Response) => {
-  const subjects = await prisma.subject.findMany({
-    include: {
-      class: true,
-      enrollments: {
+  const userId = (req as any).userId;
+  const role = (req as any).role;
+
+  try {
+    if (role === "ADMIN") {
+      const subjects = await prisma.subject.findMany({
         include: {
-          student: { include: { user: true } },
-          attendance: true,
+          class: true,
+          enrollments: {
+            include: {
+              student: { include: { user: true } },
+              attendance: true,
+            },
+          },
+          teachers: {
+            include: {
+              teacher: { include: { user: true } },
+            },
+          },
         },
-      },
-      teachers: {
+      });
+
+      return res.json(subjects);
+    }
+
+    if (role === "TEACHER") {
+      // Teachers can only see subjects they are assigned to teach
+      const subjects = await prisma.subject.findMany({
+        where: {
+          teachers: {
+            some: {
+              teacher: {
+                userId: userId,
+              },
+            },
+          },
+        },
         include: {
-          teacher: { include: { user: true } },
+          class: true,
+          enrollments: {
+            include: {
+              student: { include: { user: true } },
+              attendance: true,
+            },
+          },
+          teachers: {
+            include: {
+              teacher: { include: { user: true } },
+            },
+          },
         },
-      },
-    },
-  });
-  res.json(subjects);
+      });
+
+      return res.json(subjects);
+    }
+
+    if (role === "STUDENT") {
+      // Students can only see subjects from their class
+      const student = await prisma.student.findFirst({
+        where: { userId: userId },
+        select: { classId: true },
+      });
+
+      if (!student) {
+        return res.status(403).json({ error: "Student record not found" });
+      }
+
+      const subjects = await prisma.subject.findMany({
+        where: {
+          classId: student.classId,
+        },
+        include: {
+          class: true,
+          teachers: {
+            include: {
+              teacher: { include: { user: true } },
+            },
+          },
+        },
+      });
+
+      return res.json(subjects);
+    }
+
+    if (role === "PARENT") {
+      // Parents can only see subjects from their children's classes
+      const parent = await prisma.parent.findFirst({
+        where: { userId: userId },
+        select: { id: true },
+      });
+
+      if (!parent) {
+        return res.status(403).json({ error: "Parent record not found" });
+      }
+
+      // Get all students of this parent
+      const parentStudents = await prisma.parentStudent.findMany({
+        where: { parentId: parent.id },
+        select: { student: { select: { classId: true } } },
+      });
+
+      if (parentStudents.length === 0) {
+        return res.json([]);
+      }
+
+      // Extract unique class IDs
+      const classIds = [...new Set(parentStudents.map(ps => ps.student.classId))];
+
+      const subjects = await prisma.subject.findMany({
+        where: {
+          classId: { in: classIds },
+        },
+        include: {
+          class: true,
+          teachers: {
+            include: {
+              teacher: { include: { user: true } },
+            },
+          },
+        },
+      });
+
+      return res.json(subjects);
+    }
+
+    // For other roles, return empty array
+    return res.json([]);
+  } catch (error: any) {
+    console.error("Error in getAllSubjects:", error);
+    res.status(500).json({ error: error.message });
+  }
 };
 
 export const getSubjectById = async (req: Request, res: Response) => {
-  const subject = await prisma.subject.findUnique({
-    where: { id: Number(req.params.id) },
-    include: {
-      class: true,
-      enrollments: {
-        include: {
-          student: { include: { user: true } },
-          attendance: true,
+  const userId = (req as any).userId;
+  const role = (req as any).role;
+  const subjectId = Number(req.params.id);
+
+  try {
+    const subject = await prisma.subject.findUnique({
+      where: { id: subjectId },
+      include: {
+        class: true,
+        enrollments: {
+          include: {
+            student: { include: { user: true } },
+            attendance: true,
+          },
+        },
+        teachers: {
+          include: {
+            teacher: { include: { user: true } },
+          },
         },
       },
-      teachers: {
-        include: {
-          teacher: { include: { user: true } },
+    });
+
+    if (!subject) {
+      return res.status(404).json({ error: "Subject not found" });
+    }
+
+    // Check access permissions based on role
+    if (role === "ADMIN") {
+      return res.json(subject);
+    }
+
+    if (role === "TEACHER") {
+      // Check if teacher is assigned to this subject
+      const isAssigned = await prisma.subjectTeacher.findFirst({
+        where: {
+          subjectId: subjectId,
+          teacher: { userId: userId },
         },
-      },
-    },
-  });
-  if (!subject) return res.status(404).json({ error: "Subject not found" });
-  res.json(subject);
+      });
+
+      if (!isAssigned) {
+        return res.status(403).json({
+          error: "Forbidden: You are not assigned to teach this subject",
+        });
+      }
+
+      return res.json(subject);
+    }
+
+    if (role === "STUDENT") {
+      // Check if student is in the same class as the subject
+      const student = await prisma.student.findFirst({
+        where: { userId: userId },
+        select: { classId: true },
+      });
+
+      if (!student) {
+        return res.status(403).json({ error: "Student record not found" });
+      }
+
+      if (student.classId !== subject.classId) {
+        return res.status(403).json({
+          error: "Forbidden: You can only access subjects from your class",
+        });
+      }
+
+      return res.json(subject);
+    }
+
+    if (role === "PARENT") {
+      // Check if any of the parent's children are in the same class as the subject
+      const parent = await prisma.parent.findFirst({
+        where: { userId: userId },
+        select: { id: true },
+      });
+
+      if (!parent) {
+        return res.status(403).json({ error: "Parent record not found" });
+      }
+
+      const parentStudentInClass = await prisma.parentStudent.findFirst({
+        where: {
+          parentId: parent.id,
+          student: {
+            classId: subject.classId,
+          },
+        },
+      });
+
+      if (!parentStudentInClass) {
+        return res.status(403).json({
+          error: "Forbidden: You can only access subjects from your children's classes",
+        });
+      }
+
+      return res.json(subject);
+    }
+
+    // For other roles, deny access
+    return res.status(403).json({
+      error: "Forbidden: You don't have access to this subject",
+    });
+  } catch (error: any) {
+    console.error("Error in getSubjectById:", error);
+    res.status(500).json({ error: error.message });
+  }
 };
 
 export const createSubject = async (req: Request, res: Response) => {
@@ -110,22 +312,85 @@ export const assignTeacherToSubject = async (req: Request, res: Response) => {
 
 export async function getSubjectByClassId(req: Request, res: Response) {
   const classId = Number(req.params.classId);
+  const userId = (req as any).userId;
+  const role = (req as any).role;
 
   if (isNaN(classId)) {
     return res.status(400).json({ error: "Invalid class ID" });
   }
 
   try {
+    let whereClause: any = { classId };
+
+    // Add role-based filtering
+    if (role === "TEACHER") {
+      // Teachers can only see subjects they are assigned to teach in this class
+      whereClause.teachers = {
+        some: {
+          teacher: {
+            userId: userId,
+          },
+        },
+      };
+    } else if (role === "STUDENT") {
+      // Students can only see subjects from their own class
+      const student = await prisma.student.findFirst({
+        where: { userId: userId },
+        select: { classId: true },
+      });
+
+      if (!student) {
+        return res.status(403).json({ error: "Student record not found" });
+      }
+
+      if (student.classId !== classId) {
+        return res.status(403).json({
+          error: "Forbidden: You can only access subjects from your class",
+        });
+      }
+    } else if (role === "PARENT") {
+      // Parents can only see subjects from classes where their children are enrolled
+      const parent = await prisma.parent.findFirst({
+        where: { userId: userId },
+        select: { id: true },
+      });
+
+      if (!parent) {
+        return res.status(403).json({ error: "Parent record not found" });
+      }
+
+      const parentStudentInClass = await prisma.parentStudent.findFirst({
+        where: {
+          parentId: parent.id,
+          student: {
+            classId: classId,
+          },
+        },
+      });
+
+      if (!parentStudentInClass) {
+        return res.status(403).json({
+          error: "Forbidden: You can only access subjects from your children's classes",
+        });
+      }
+    }
+    // Admin can see all subjects
+
     const subjects = await prisma.subject.findMany({
-      where: { classId },
+      where: whereClause,
       include: {
         class: true,
+        teachers: {
+          include: {
+            teacher: { include: { user: true } },
+          },
+        },
       },
     });
 
     return res.status(200).json(subjects);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching subjects:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: error.message });
   }
 }

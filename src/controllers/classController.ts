@@ -73,7 +73,9 @@ export const getAllClasses = async (req: Request, res: Response) => {
     }
 
     // Extract unique class IDs
-    const classIds = [...new Set(parentStudents.map(ps => ps.student.classId))];
+    const classIds = [
+      ...new Set(parentStudents.map((ps) => ps.student.classId)),
+    ];
 
     const classes = await prisma.class.findMany({
       where: {
