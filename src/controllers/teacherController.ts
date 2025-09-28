@@ -139,6 +139,7 @@ export const updateTeacher = async (req: Request, res: Response) => {
     degree,
     university,
     graduationYear,
+    subjectSpecialization,
   } = req.body;
 
   const userUpdateField = {
@@ -167,16 +168,38 @@ export const updateTeacher = async (req: Request, res: Response) => {
   if (hireDate !== null || hireDate !== undefined)
     updateData.hireDate = new Date(hireDate);
 
-  const teacher = await prisma.teacher.update({
-    where: { id: Number(req.params.id) },
-    data: {
-      ...updateData,
-      user: {
-        update: userUpdateField,
+  const result = await prisma.$transaction(async (tx) => {
+    // Update teacher and user data
+    const teacher = await tx.teacher.update({
+      where: { id: Number(req.params.id) },
+      data: {
+        ...updateData,
+        user: {
+          update: userUpdateField,
+        },
       },
-    },
+    });
+
+    // Handle subject specialization update
+    if (subjectSpecialization) {
+      // First, remove all existing subject assignments for this teacher
+      await tx.subjectTeacher.deleteMany({
+        where: { teacherId: Number(req.params.id) },
+      });
+
+      // Then, create the new subject assignment
+      await tx.subjectTeacher.create({
+        data: {
+          teacherId: Number(req.params.id),
+          subjectId: parseInt(subjectSpecialization),
+        },
+      });
+    }
+
+    return teacher;
   });
-  res.json(teacher);
+
+  res.json(result);
 };
 
 export const deleteTeacher = async (req: Request, res: Response) => {

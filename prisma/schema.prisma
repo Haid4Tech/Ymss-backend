@@ -39,7 +39,7 @@ model User {
 model Student {
   id             Int              @id @default(autoincrement())
   userId         Int              @unique
-  classId        Int
+  classId        Int?
   admissionDate  DateTime         @default(now())
   previousSchool String?
   relationship   String
@@ -48,7 +48,7 @@ model Student {
   grades         Grade[]
   parents        ParentStudent[]
   attendance     Attendance[]
-  class          Class            @relation(fields: [classId], references: [id])
+  class          Class?           @relation(fields: [classId], references: [id], onDelete: SetNull)
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -91,6 +91,7 @@ model Class {
   id           Int         @id @default(autoincrement())
   name         String
   academicYear String?
+  gradeLevel  String?
   capacity     Int
   days         String[]
   description  String?
@@ -100,7 +101,7 @@ model Class {
   startDate    DateTime
   startTime    String?
   teacherId    Int?
-  teacher      Teacher?    @relation(fields: [teacherId], references: [id])
+  teacher      Teacher?    @relation(fields: [teacherId], references: [id], onDelete: SetNull)
   exams        Exam[]
   students     Student[]
   subjects     Subject[]
@@ -118,7 +119,7 @@ model Subject {
   enrollments Enrollment[]
   exams       Exam[]
   grades      Grade[]
-  class       Class            @relation(fields: [classId], references: [id])
+  class       Class            @relation(fields: [classId], references: [id], onDelete: SetNull)
   teachers    SubjectTeacher[]
 }
 
@@ -217,7 +218,7 @@ model Grade {
   exam              Exam?    @relation(fields: [examId], references: [id])
   student           Student  @relation(fields: [studentId], references: [id])
   subject           Subject  @relation(fields: [subjectId], references: [id])
-  class             Class    @relation(fields: [classId], references: [id])
+  class             Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
   
   @@unique([studentId, subjectId, academicYear, term])
 }

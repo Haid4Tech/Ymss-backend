@@ -29,7 +29,7 @@ export const getAllClasses = async (req: Request, res: Response) => {
       select: { classId: true },
     });
 
-    if (!student) {
+    if (!student || !student.classId) {
       return res.json([]);
     }
 
@@ -72,10 +72,18 @@ export const getAllClasses = async (req: Request, res: Response) => {
       return res.json([]);
     }
 
-    // Extract unique class IDs
+    // Extract unique class IDs, filtering out null values
     const classIds = [
-      ...new Set(parentStudents.map((ps) => ps.student.classId)),
+      ...new Set(
+        parentStudents
+          .map((ps) => ps.student.classId)
+          .filter((id): id is number => id !== null)
+      ),
     ];
+
+    if (classIds.length === 0) {
+      return res.json([]);
+    }
 
     const classes = await prisma.class.findMany({
       where: {
@@ -153,6 +161,11 @@ export const getClassById = async (req: Request, res: Response) => {
         },
       },
       subjects: true,
+      teacher: {
+        include: {
+          user: { select: { firstname: true, lastname: true, email: true } },
+        },
+      },
     },
   });
 
@@ -240,6 +253,7 @@ export const createClass = async (req: Request, res: Response) => {
       schedule,
       exams,
       teacherId,
+      gradeLevel,
     } = req.body;
 
     const { startDate, endDate, startTime, endTime, days } = schedule;
@@ -252,6 +266,7 @@ export const createClass = async (req: Request, res: Response) => {
         name,
         capacity,
         roomNumber,
+        gradeLevel,
         description,
         academicYear,
         startDate: parsedStartDate,
@@ -281,16 +296,46 @@ export const updateClass = async (req: Request, res: Response) => {
     });
   }
 
-  const { name, teacherId } = req.body;
+  const { 
+    name, 
+    teacherId, 
+    gradeLevel, 
+    capacity, 
+    roomNumber, 
+    description, 
+    academicYear, 
+    schedule 
+  } = req.body;
+
+  const updateData: any = {};
+  
+  if (name !== undefined) updateData.name = name;
+  if (teacherId !== undefined) updateData.teacherId = teacherId;
+  if (gradeLevel !== undefined) updateData.gradeLevel = gradeLevel;
+  if (capacity !== undefined) updateData.capacity = capacity;
+  if (roomNumber !== undefined) updateData.roomNumber = roomNumber;
+  if (description !== undefined) updateData.description = description;
+  if (academicYear !== undefined) updateData.academicYear = academicYear;
+  
+  // Handle schedule data
+  if (schedule) {
+    if (schedule.startDate) updateData.startDate = new Date(schedule.startDate).toISOString();
+    if (schedule.endDate) updateData.endDate = new Date(schedule.endDate).toISOString();
+    if (schedule.startTime !== undefined) updateData.startTime = schedule.startTime;
+    if (schedule.endTime !== undefined) updateData.endTime = schedule.endTime;
+    if (schedule.days !== undefined) updateData.days = schedule.days;
+  }
+
   const classObj = await prisma.class.update({
     where: { id: classId },
-    data: { name },
+    data: updateData,
   });
   res.json(classObj);
 };
 
 export const deleteClass = async (req: Request, res: Response) => {
   const role = (req as any).role;
+  const classId = Number(req.params.id);
 
   // Only admins can delete classes
   if (role !== "ADMIN") {
@@ -299,6 +344,82 @@ export const deleteClass = async (req: Request, res: Response) => {
     });
   }
 
-  await prisma.class.delete({ where: { id: Number(req.params.id) } });
-  res.status(204).send();
+  try {
+    // Check if class exists
+    const classToDelete = await prisma.class.findUnique({
+      where: { id: classId },
+      include: {
+        students: true,
+        subjects: true,
+      },
+    });
+
+    if (!classToDelete) {
+      return res.status(404).json({ error: "Class not found" });
+    }
+
+    // Use a transaction to ensure all operations succeed or fail together
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete attendance records for this class (as requested)
+      await tx.attendance.deleteMany({
+        where: { classId: classId },
+      });
+
+      // 2. Delete grades for this class
+      await tx.grade.deleteMany({
+        where: { classId: classId },
+      });
+
+      // 3. Delete exams for this class
+      await tx.exam.deleteMany({
+        where: { classId: classId },
+      });
+
+      // 4. Get all subjects for this class first
+      const subjects = await tx.subject.findMany({
+        where: { classId: classId },
+        select: { id: true },
+      });
+
+      // 5. Delete all enrollments for subjects in this class
+      if (subjects.length > 0) {
+        const subjectIds = subjects.map((subject) => subject.id);
+        await tx.enrollment.deleteMany({
+          where: { subjectId: { in: subjectIds } },
+        });
+      }
+
+      // 6. Delete subject teachers for subjects in this class
+      if (subjects.length > 0) {
+        const subjectIds = subjects.map((subject) => subject.id);
+        await tx.subjectTeacher.deleteMany({
+          where: { subjectId: { in: subjectIds } },
+        });
+      }
+
+      // 7. Delete subjects for this class
+      await tx.subject.deleteMany({
+        where: { classId: classId },
+      });
+
+      // 8. Update students to remove class assignment (set classId to null)
+      await tx.student.updateMany({
+        where: { classId: classId },
+        data: { classId: null },
+      });
+
+      // 9. Finally, delete the class
+      await tx.class.delete({
+        where: { id: classId },
+      });
+    });
+
+    res.status(204).send();
+  } catch (error) {
+    console.error("Error deleting class:", error);
+    res.status(500).json({
+      error: "Failed to delete class",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
 };

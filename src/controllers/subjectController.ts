@@ -65,8 +65,12 @@ export const getAllSubjects = async (req: Request, res: Response) => {
         select: { classId: true },
       });
 
-      if (!student) {
-        return res.status(403).json({ error: "Student record not found" });
+      if (!student || !student.classId) {
+        return res
+          .status(403)
+          .json({
+            error: "Student record not found or not assigned to a class",
+          });
       }
 
       const subjects = await prisma.subject.findMany({
@@ -107,8 +111,18 @@ export const getAllSubjects = async (req: Request, res: Response) => {
         return res.json([]);
       }
 
-      // Extract unique class IDs
-      const classIds = [...new Set(parentStudents.map(ps => ps.student.classId))];
+      // Extract unique class IDs, filtering out null values
+      const classIds = [
+        ...new Set(
+          parentStudents
+            .map((ps) => ps.student.classId)
+            .filter((id): id is number => id !== null)
+        ),
+      ];
+
+      if (classIds.length === 0) {
+        return res.json([]);
+      }
 
       const subjects = await prisma.subject.findMany({
         where: {
@@ -228,7 +242,8 @@ export const getSubjectById = async (req: Request, res: Response) => {
 
       if (!parentStudentInClass) {
         return res.status(403).json({
-          error: "Forbidden: You can only access subjects from your children's classes",
+          error:
+            "Forbidden: You can only access subjects from your children's classes",
         });
       }
 
@@ -370,7 +385,8 @@ export async function getSubjectByClassId(req: Request, res: Response) {
 
       if (!parentStudentInClass) {
         return res.status(403).json({
-          error: "Forbidden: You can only access subjects from your children's classes",
+          error:
+            "Forbidden: You can only access subjects from your children's classes",
         });
       }
     }
