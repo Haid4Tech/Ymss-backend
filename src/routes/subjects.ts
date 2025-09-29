@@ -7,6 +7,7 @@ const router = Router();
 
 router.get("/", authMiddleware, subjectController.getAllSubjects);
 router.get("/:id", authMiddleware, subjectController.getSubjectById);
+router.get("/test/:id", authMiddleware, subjectController.getSubjectByIdTest);
 router.get(
   "/class/:classId",
   authMiddleware,

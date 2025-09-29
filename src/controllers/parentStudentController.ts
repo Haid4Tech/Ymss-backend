@@ -38,7 +38,7 @@ export const getParentsForStudent = async (req: Request, res: Response) => {
   }
 
   const parents = await prisma.parentStudent.findMany({
-    where: { id: studentId },
+    where: { studentId: studentId },
     include: { parent: { include: { user: true } } },
   });
   res.json(parents);
