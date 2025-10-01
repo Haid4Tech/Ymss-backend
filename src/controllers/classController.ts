@@ -18,6 +18,9 @@ export const getAllClasses = async (req: Request, res: Response) => {
           },
         },
       },
+      orderBy: {
+        name: "asc",
+      },
     });
     return res.json(classes);
   }
@@ -296,19 +299,19 @@ export const updateClass = async (req: Request, res: Response) => {
     });
   }
 
-  const { 
-    name, 
-    teacherId, 
-    gradeLevel, 
-    capacity, 
-    roomNumber, 
-    description, 
-    academicYear, 
-    schedule 
+  const {
+    name,
+    teacherId,
+    gradeLevel,
+    capacity,
+    roomNumber,
+    description,
+    academicYear,
+    schedule,
   } = req.body;
 
   const updateData: any = {};
-  
+
   if (name !== undefined) updateData.name = name;
   if (teacherId !== undefined) updateData.teacherId = teacherId;
   if (gradeLevel !== undefined) updateData.gradeLevel = gradeLevel;
@@ -316,12 +319,15 @@ export const updateClass = async (req: Request, res: Response) => {
   if (roomNumber !== undefined) updateData.roomNumber = roomNumber;
   if (description !== undefined) updateData.description = description;
   if (academicYear !== undefined) updateData.academicYear = academicYear;
-  
+
   // Handle schedule data
   if (schedule) {
-    if (schedule.startDate) updateData.startDate = new Date(schedule.startDate).toISOString();
-    if (schedule.endDate) updateData.endDate = new Date(schedule.endDate).toISOString();
-    if (schedule.startTime !== undefined) updateData.startTime = schedule.startTime;
+    if (schedule.startDate)
+      updateData.startDate = new Date(schedule.startDate).toISOString();
+    if (schedule.endDate)
+      updateData.endDate = new Date(schedule.endDate).toISOString();
+    if (schedule.startTime !== undefined)
+      updateData.startTime = schedule.startTime;
     if (schedule.endTime !== undefined) updateData.endTime = schedule.endTime;
     if (schedule.days !== undefined) updateData.days = schedule.days;
   }
